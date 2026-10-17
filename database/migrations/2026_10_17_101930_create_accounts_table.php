@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('type', AccountType::cases())->default(AccountType::VENDOR->value);
-            $table->enum('status', AccountStatus::cases())->default(AccountStatus::ACTIVE->value);
+            $table->enum('account_type', AccountType::cases())->default(AccountType::VENDOR->value);
+            $table->enum('account_status', AccountStatus::cases())->default(AccountStatus::ACTIVE->value);
             $table->timestamps();
         });
     }

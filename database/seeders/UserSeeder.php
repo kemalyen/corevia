@@ -15,24 +15,33 @@ class UserSeeder extends Seeder
     public function run(): void
     {
 
-        $users = User::factory(10)->create()->assignRole('account-manager');
+        $accountManegerRole = \Spatie\Permission\Models\Role::where('name', 'account-manager')->first();
+        $vendorUserRole = \Spatie\Permission\Models\Role::where('name', 'vendor-user')->first();
+        $superAdminRole = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first();
+        $masterDataRole = \Spatie\Permission\Models\Role::where('name', 'master-data')->first();
 
-        Account::factory(50)
-            ->recycle($users)
-            ->has(
-                User::factory()
-            )->create()
-            ->each(function ($account) {
-                $account->users->each(function ($user) {
-                    $user->assignRole('vendor-user');
-                });
+        $users = User::factory(10)->create()
+            ->each(function ($user) use ($accountManegerRole) {
+                $user->assignRole($accountManegerRole);
             });
 
-        User::factory(2)->create()->assignRole('master-data');
+        Account::factory(5)
+            ->recycle($users)
+            ->create()
+            ->each(function ($account) use ($vendorUserRole) {
+                $user = User::factory()->create();
+                $user->assignRole($vendorUserRole);
+                $account->users()->save($user);
+            });
 
-        User::factory()->create([
+        User::factory(2)->create()->each(function ($user) use ($masterDataRole) {
+            $user->assignRole($masterDataRole);
+        });
+
+        $adminUser = User::factory()->create([
             'name' => 'Admin',
             'email' => 'test@example.com',
-        ])->assignRole('super-admin');
+        ]);
+        $adminUser->assignRole($superAdminRole);
     }
 }

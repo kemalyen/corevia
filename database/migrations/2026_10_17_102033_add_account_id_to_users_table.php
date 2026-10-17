@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $this->bigInteger('account_id')->nullable()->after('id');
-            $this->foreign('account_id')->references('id')->on('account')->onDelete('cascade');
+            $table->unsignedBigInteger('account_id')->nullable()->after('id');
+            $table->foreign('account_id')->references('id')->on('accounts')->onDelete('cascade');
         });
     }
 
@@ -22,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('user', function (Blueprint $table) {
-            $this->dropColumn('account_id');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('account_id');
         });
     }
 };

@@ -18,7 +18,9 @@ class AccountFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->company(),
+            'account_type' => $this->faker->randomElement(\App\Enums\AccountType::cases()),
+            'account_status' => $this->faker->randomElement(\App\Enums\AccountStatus::cases()),
         ];
     }
 }

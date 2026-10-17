@@ -13,46 +13,56 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
+        $createAccount = Permission::create(['name' => 'create-account']);
+        $deleteAccount = Permission::create(['name' => 'delete-account']);
+        $updateAccount = Permission::create(['name' => 'update-account']);
 
-        Permission::create(['name' => 'create account']);
-        Permission::create(['name' => 'delete account']);
-        Permission::create(['name' => 'update account']);
+        $createUser = Permission::create(['name' => 'create-user']);
+        $deleteUser = Permission::create(['name' => 'delete-user']);
+        $updateUser = Permission::create(['name' => 'update-user']);
 
-        Permission::create(['name' => 'create user']);
-        Permission::create(['name' => 'delete user']);
-        Permission::create(['name' => 'update user']);
-
-        Permission::create(['name' => 'update order']);
-        Permission::create(['name' => 'delete order']);
-        Permission::create(['name' => 'create order']);
+        $updateOrder = Permission::create(['name' => 'update-order']);
+        $deleteOrder = Permission::create(['name' => 'delete-order']);
+        $createOrder = Permission::create(['name' => 'create-order']);
 
         $masterData = Role::create(['name' => 'master-data']);
 
         $masterData->givePermissionTo([
-            'create account',
-            'delete account',
-            'update account',
-            'create user',
-            'delete user',
-            'update user'
+            $createAccount,
+            $deleteAccount,
+            $updateAccount,
+            $createUser,
+            $deleteUser,
+            $updateUser
         ]);
 
         $accountManager = Role::create(['name' => 'account-manager']);
-        $accountManager->givePermissionTo('update order');
+        $accountManager->givePermissionTo($updateOrder);
 
         $orderManager = Role::create(['name' => 'order-manager']);
         $orderManager->givePermissionTo([
-            'create order',
-            'update order',
-            'delete order'
+            $createOrder,
+            $updateOrder,
+            $deleteOrder
         ]);
 
         $vendor = Role::create(['name' => 'vendor-user']);
         $vendor->givePermissionTo([
-            'create order',
-            'update order'
+            $createOrder,
+            $updateOrder
         ]);
 
-        $accountManager = Role::create(['name' => 'super-admin']);
+        $superAdmin = Role::create(['name' => 'super-admin']);
+        $superAdmin->givePermissionTo([
+            $createAccount,
+            $deleteAccount,
+            $updateAccount,
+            $createUser,
+            $deleteUser,
+            $updateUser,
+            $createOrder,
+            $deleteOrder,
+            $updateOrder
+        ]);
     }
 }
