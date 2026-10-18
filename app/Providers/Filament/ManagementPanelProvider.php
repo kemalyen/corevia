@@ -27,9 +27,12 @@ class ManagementPanelProvider extends PanelProvider
             ->default()
             ->id('management')
             ->path('management')
+            ->topNavigation(true)
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Neutral,
+                'tertiary' => Color::Gray,
+                'gray' => '#374151',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
