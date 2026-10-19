@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SalesOrders\Pages;
 use App\Filament\Resources\SalesOrders\SalesOrderResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ViewSalesOrder extends ViewRecord
 {
@@ -15,5 +16,10 @@ class ViewSalesOrder extends ViewRecord
         return [
             EditAction::make(),
         ];
+    }
+
+    public function getTitle(): string | Htmlable
+    {
+        return '';
     }
 }

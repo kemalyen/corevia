@@ -6,6 +6,7 @@ use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
+use Filament\Tables;
 
 class UsersRelationManager extends RelationManager
 {
@@ -16,8 +17,16 @@ class UsersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('name')
             ->headerActions([
                 CreateAction::make(),
+            ])->columns([
+                Tables\Columns\TextColumn::make('name')->searchable(),
+                Tables\Columns\TextColumn::make('email')->searchable(),
+                Tables\Columns\TextColumn::make('role'),
+            ])
+            ->filters([
+                // Add any filters for users here
             ]);
     }
 }

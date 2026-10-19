@@ -6,6 +6,7 @@ use App\Filament\Resources\SalesOrders\SalesOrderResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Contracts\Support\Htmlable;
 
 class EditSalesOrder extends EditRecord
 {
@@ -17,5 +18,10 @@ class EditSalesOrder extends EditRecord
             ViewAction::make(),
             DeleteAction::make(),
         ];
+    }
+
+    public function getTitle(): string | Htmlable
+    {
+        return '';
     }
 }

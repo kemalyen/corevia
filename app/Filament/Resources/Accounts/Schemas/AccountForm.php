@@ -2,8 +2,11 @@
 
 namespace App\Filament\Resources\Accounts\Schemas;
 
+use App\Enums\AccountType;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
 
 class AccountForm
 {
@@ -11,14 +14,19 @@ class AccountForm
     {
         return $schema
             ->components([
-                TextInput::make('name')
-                    ->required(),
-                TextInput::make('account_type')
-                    ->required()
-                    ->default('vendor'),
-                TextInput::make('account_status')
-                    ->required()
-                    ->default('active'),
+                Section::make('Edit Account Details')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('name')
+                            ->required()->columnSpanFull(),
+
+                        Select::make('account_status')
+                            ->options(AccountType::class),
+
+                        Select::make('account_type')
+                            ->options(AccountType::class)
+
+                    ])->columnSpanFull()
             ]);
     }
 }

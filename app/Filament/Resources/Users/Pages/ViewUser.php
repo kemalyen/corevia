@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Users\Pages;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ViewUser extends ViewRecord
 {
@@ -15,5 +16,10 @@ class ViewUser extends ViewRecord
         return [
             EditAction::make(),
         ];
+    }
+
+    public function getTitle(): string | Htmlable
+    {
+        return '';
     }
 }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 
 class ProductInfolist
 {
@@ -11,20 +12,24 @@ class ProductInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('name'),
-                TextEntry::make('description')
-                    ->placeholder('-')
-                    ->columnSpanFull(),
-                TextEntry::make('price')
-                    ->money(),
-                TextEntry::make('sku')
-                    ->label('SKU'),
-                TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                Section::make('Product Details')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('name')->columnSpanFull(),
+                        TextEntry::make('description')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                        TextEntry::make('price')
+                            ->money(),
+                        TextEntry::make('sku')
+                            ->label('SKU'),
+                        TextEntry::make('created_at')
+                            ->dateTime()
+                            ->placeholder('-'),
+                        TextEntry::make('updated_at')
+                            ->dateTime()
+                            ->placeholder('-'),
+                    ])->columnSpanFull()
             ]);
     }
 }

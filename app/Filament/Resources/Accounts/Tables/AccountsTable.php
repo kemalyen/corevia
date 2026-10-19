@@ -20,6 +20,7 @@ class AccountsTable
                 TextColumn::make('account_type')
                     ->searchable(),
                 TextColumn::make('account_status')->badge(),
+                TextColumn::make('account_type')->badge(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

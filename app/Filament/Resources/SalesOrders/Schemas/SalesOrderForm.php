@@ -2,9 +2,13 @@
 
 namespace App\Filament\Resources\SalesOrders\Schemas;
 
+use App\Enums\OrderStatus;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+
 
 class SalesOrderForm
 {
@@ -12,19 +16,22 @@ class SalesOrderForm
     {
         return $schema
             ->components([
-                TextInput::make('order_number')
-                    ->required(),
-                DateTimePicker::make('order_date')
-                    ->required(),
-                TextInput::make('account_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('total_amount')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('status')
-                    ->required()
-                    ->default('pending'),
+                Section::make('Sales Order')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('order_number')
+                            ->required(),
+                        DateTimePicker::make('order_date')
+                            ->required(),
+                        Select::make('account_id')
+                            ->relationship('account', 'name')
+                            ->required(),
+                        TextInput::make('total_amount')
+                            ->required()
+                            ->numeric(),
+                        Select::make('status')
+                            ->options(OrderStatus::class)
+                    ])->columnSpanFull()
             ]);
     }
 }

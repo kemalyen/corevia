@@ -31,9 +31,9 @@ class UsersTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('account_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('account.name')
+                    ->searchable()
+                    ->sortable()
             ])
             ->filters([
                 //
