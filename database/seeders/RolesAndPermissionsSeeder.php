@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -13,56 +14,75 @@ class RolesAndPermissionsSeeder extends Seeder
      */
     public function run(): void
     {
-        $createAccount = Permission::create(['name' => 'create-account']);
-        $deleteAccount = Permission::create(['name' => 'delete-account']);
-        $updateAccount = Permission::create(['name' => 'update-account']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $createUser = Permission::create(['name' => 'create-user']);
-        $deleteUser = Permission::create(['name' => 'delete-user']);
-        $updateUser = Permission::create(['name' => 'update-user']);
+        $permissions = [
+            'access-management-panel',
+            'view-any-account',
+            'view-account',
+            'create-account',
+            'update-account',
+            'delete-account',
+            'manage-all-accounts',
+            'view-any-user',
+            'view-user',
+            'create-user',
+            'update-user',
+            'delete-user',
+            'view-any-product',
+            'view-product',
+            'create-product',
+            'update-product',
+            'delete-product',
+            'view-any-order',
+            'view-order',
+            'create-order',
+            'update-order',
+            'delete-order',
+            'manage-all-orders',
+        ];
 
-        $updateOrder = Permission::create(['name' => 'update-order']);
-        $deleteOrder = Permission::create(['name' => 'delete-order']);
-        $createOrder = Permission::create(['name' => 'create-order']);
+        foreach ($permissions as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
 
-        $masterData = Role::create(['name' => 'master-data']);
+        // DatabaseSeeder disables model events, so Spatie cannot invalidate this cache automatically.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $masterData->givePermissionTo([
-            $createAccount,
-            $deleteAccount,
-            $updateAccount,
-            $createUser,
-            $deleteUser,
-            $updateUser
+        $masterData = Role::findOrCreate('master-data', 'web');
+        $masterData->syncPermissions($permissions);
+
+        $accountManager = Role::findOrCreate('account-manager', 'web');
+        $accountManager->syncPermissions([
+            'access-management-panel',
+            'view-any-account',
+            'view-account',
+            'view-any-order',
+            'view-order',
+            'update-order',
         ]);
 
-        $accountManager = Role::create(['name' => 'account-manager']);
-        $accountManager->givePermissionTo($updateOrder);
-
-        $orderManager = Role::create(['name' => 'order-manager']);
-        $orderManager->givePermissionTo([
-            $createOrder,
-            $updateOrder,
-            $deleteOrder
+        $orderManager = Role::findOrCreate('order-manager', 'web');
+        $orderManager->syncPermissions([
+            'access-management-panel',
+            'view-any-order',
+            'view-order',
+            'create-order',
+            'update-order',
+            'delete-order',
+            'manage-all-orders',
         ]);
 
-        $vendor = Role::create(['name' => 'vendor-user']);
-        $vendor->givePermissionTo([
-            $createOrder,
-            $updateOrder
+        $vendor = Role::findOrCreate('vendor-user', 'web');
+        $vendor->syncPermissions([
+            'view-order',
+            'create-order',
+            'update-order',
         ]);
 
-        $superAdmin = Role::create(['name' => 'super-admin']);
-        $superAdmin->givePermissionTo([
-            $createAccount,
-            $deleteAccount,
-            $updateAccount,
-            $createUser,
-            $deleteUser,
-            $updateUser,
-            $createOrder,
-            $deleteOrder,
-            $updateOrder
-        ]);
+        $superAdmin = Role::findOrCreate('super-admin', 'web');
+        $superAdmin->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

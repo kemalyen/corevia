@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +30,7 @@ class ManagementPanelProvider extends PanelProvider
             ->path('management')
             ->topNavigation(true)
             ->login()
+            ->profile(EditProfile::class)
             ->colors([
                 'primary' => Color::Neutral,
                 'tertiary' => Color::Gray,

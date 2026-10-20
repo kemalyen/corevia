@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Accounts\Schemas;
 
+use App\Enums\AccountStatus;
 use App\Enums\AccountType;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class AccountForm
 {
@@ -21,12 +22,12 @@ class AccountForm
                             ->required()->columnSpanFull(),
 
                         Select::make('account_status')
-                            ->options(AccountType::class),
+                            ->options(AccountStatus::class),
 
                         Select::make('account_type')
-                            ->options(AccountType::class)
+                            ->options(AccountType::class),
 
-                    ])->columnSpanFull()
+                    ])->columnSpanFull(),
             ]);
     }
 }

@@ -7,7 +7,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class UsersTable
 {
@@ -20,23 +23,28 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
-                TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('roles.name')->label('Roles')
+                    ->getStateUsing(fn ($record) => $record->roles->pluck('name')->map(fn ($role) => str($role)->replace(['-', '_'], ' ')->title())->join(', ')),
+
                 TextColumn::make('account.name')
                     ->searchable()
-                    ->sortable()
+                    ->label('Account Name')
+                    ->getStateUsing(fn ($record) => $record->account?->name)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('managedAccounts.name')
+                    ->label('Account Manager Accounts')
+                    ->getStateUsing(fn ($record) => $record->managedAccounts->pluck('name')->join(', '))
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('account_id')
+                    ->relationship('account', 'name')
+                    ->label('Account Name'),
+                SelectFilter::make('roles.name')
+                    ->relationship('roles', 'name')
+                    ->getOptionLabelFromRecordUsing(fn (Model $record) => Str::of($record->name)->replace(['-', '_'], ' ')->title()),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -44,7 +52,8 @@ class UsersTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete'),
                 ]),
             ]);
     }

@@ -6,13 +6,11 @@ use App\Filament\Resources\Accounts\Pages\CreateAccount;
 use App\Filament\Resources\Accounts\Pages\EditAccount;
 use App\Filament\Resources\Accounts\Pages\ListAccounts;
 use App\Filament\Resources\Accounts\Pages\ViewAccount;
-use App\Filament\Resources\Accounts\RelationManagers\UsersRelationManager;
 use App\Filament\Resources\Accounts\RelationManagers\SalesOrdersRelationManager;
+use App\Filament\Resources\Accounts\RelationManagers\UsersRelationManager;
 use App\Filament\Resources\Accounts\Schemas\AccountForm;
 use App\Filament\Resources\Accounts\Schemas\AccountInfolist;
 use App\Filament\Resources\Accounts\Tables\AccountsTable;
-use App\Filament\Resources\SalesOrders\Pages\ManageSalesOrderItems;
-
 use App\Models\Account;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -56,7 +54,6 @@ class AccountResource extends Resource
             'create' => CreateAccount::route('/create'),
             'view' => ViewAccount::route('/{record}'),
             'edit' => EditAccount::route('/{record}/edit'),
-            'items' => ManageSalesOrderItems::route('/{record}/items'),
         ];
     }
 }
