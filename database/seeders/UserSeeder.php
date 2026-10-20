@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Account;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -14,28 +14,51 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        $accountManagerRole = Role::findByName('account-manager');
+        $vendorUserRole = Role::findByName('vendor-user');
+        $orderManagerRole = Role::findByName('order-manager');
+        $superAdminRole = Role::findByName('super-admin');
+        $masterDataRole = Role::findByName('master-data');
 
-        $accountManegerRole = \Spatie\Permission\Models\Role::where('name', 'account-manager')->first();
-        $vendorUserRole = \Spatie\Permission\Models\Role::where('name', 'vendor-user')->first();
-        $superAdminRole = \Spatie\Permission\Models\Role::where('name', 'super-admin')->first();
-        $masterDataRole = \Spatie\Permission\Models\Role::where('name', 'master-data')->first();
-
-        $users = User::factory(10)->create()
-            ->each(function ($user) use ($accountManegerRole) {
-                $user->assignRole($accountManegerRole);
+        $accountManagers = User::factory()
+            ->count(3)
+            ->sequence(
+                [
+                    'name' => 'Account Manager One',
+                    'email' => 'account.manager.one@corevia.test',
+                ],
+                [
+                    'name' => 'Account Manager Two',
+                    'email' => 'account.manager.two@corevia.test',
+                ],
+                [
+                    'name' => 'Account Manager Three',
+                    'email' => 'account.manager.three@corevia.test',
+                ],
+            )
+            ->create()
+            ->each(function (User $user) use ($accountManagerRole): void {
+                $user->assignRole($accountManagerRole);
             });
 
-        Account::factory(5)
-            ->recycle($users)
+        $accounts = Account::factory(5)
             ->create()
-            ->each(function ($account) use ($vendorUserRole) {
+            ->each(function (Account $account) use ($vendorUserRole): void {
                 $user = User::factory()->create();
                 $user->assignRole($vendorUserRole);
                 $account->users()->save($user);
             });
 
-        User::factory(2)->create()->each(function ($user) use ($masterDataRole) {
+        $accountManagers[0]->managedAccounts()->sync($accounts->take(3)->modelKeys());
+        $accountManagers[1]->managedAccounts()->sync($accounts->slice(1, 3)->modelKeys());
+        $accountManagers[2]->managedAccounts()->sync($accounts->slice(2, 3)->modelKeys());
+
+        User::factory(2)->create()->each(function (User $user) use ($masterDataRole): void {
             $user->assignRole($masterDataRole);
+        });
+
+        User::factory(2)->create()->each(function (User $user) use ($orderManagerRole): void {
+            $user->assignRole($orderManagerRole);
         });
 
         $adminUser = User::factory()->create([

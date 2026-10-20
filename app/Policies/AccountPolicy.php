@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Account;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AccountPolicy
 {
@@ -13,7 +12,7 @@ class AccountPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return $user->can('view-any-account');
     }
 
     /**
@@ -21,7 +20,7 @@ class AccountPolicy
      */
     public function view(User $user, Account $account): bool
     {
-        return false;
+        return $user->can('view-account') && $this->canAccessAccount($user, $account);
     }
 
     /**
@@ -29,7 +28,7 @@ class AccountPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->can('create-account');
     }
 
     /**
@@ -37,7 +36,7 @@ class AccountPolicy
      */
     public function update(User $user, Account $account): bool
     {
-        return false;
+        return $user->can('update-account') && $this->canAccessAccount($user, $account);
     }
 
     /**
@@ -45,7 +44,12 @@ class AccountPolicy
      */
     public function delete(User $user, Account $account): bool
     {
-        return false;
+        return $user->can('delete-account') && $this->canAccessAccount($user, $account);
+    }
+
+    public function deleteAny(User $user): bool
+    {
+        return $user->can('delete-account') && $user->can('manage-all-accounts');
     }
 
     /**
@@ -53,7 +57,12 @@ class AccountPolicy
      */
     public function restore(User $user, Account $account): bool
     {
-        return false;
+        return $user->can('delete-account') && $this->canAccessAccount($user, $account);
+    }
+
+    public function restoreAny(User $user): bool
+    {
+        return $this->deleteAny($user);
     }
 
     /**
@@ -62,5 +71,17 @@ class AccountPolicy
     public function forceDelete(User $user, Account $account): bool
     {
         return false;
+    }
+
+    public function forceDeleteAny(User $user): bool
+    {
+        return false;
+    }
+
+    private function canAccessAccount(User $user, Account $account): bool
+    {
+        return $user->can('manage-all-accounts')
+            || $user->managesAccount($account)
+            || $user->belongsToAccount($account);
     }
 }
