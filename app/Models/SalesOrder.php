@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
+use Database\Factories\SalesOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesOrder extends Model
 {
-    /** @use HasFactory<\Database\Factories\SalesOrderFactory> */
+    /** @use HasFactory<SalesOrderFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -16,20 +20,23 @@ class SalesOrder extends Model
         'account_id',
         'total_amount',
         'status',
+        'currency',
+        'source',
+        'external_id',
     ];
 
     protected $casts = [
         'order_date' => 'datetime',
         'total_amount' => 'decimal:2',
-        'status' => \App\Enums\OrderStatus::class,
+        'status' => OrderStatus::class,
     ];
 
-    public function lines()
+    public function lines(): HasMany
     {
         return $this->hasMany(SalesOrderLine::class);
     }
 
-    public function account()
+    public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
     }

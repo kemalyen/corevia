@@ -1,0 +1,4 @@
+order_external_id,order_number,order_date,customer_external_id,status,currency,total_amount,line_external_id,line_number,product_external_id,quantity,unit_price,line_total,description,sku,unit_of_measure
+ORDER-1001,SO-1001,2026-10-20,CUST-1001,pending,GBP,29.25,LINE-1001,1,PROD-1001,2.0000,12.50,25.00,Widgets,SKU-1001,EA
+ORDER-1002,SO-1002,2026-10-20,CUST-1002,pending,GBP,4.25,LINE-1003,1,PROD-1002,1.0000,4.25,4.25,Case,SKU-1002,EA
+ORDER-1001,SO-1001,2026-10-20,CUST-1001,pending,GBP,29.25,LINE-1002,2,PROD-1002,1.0000,4.25,4.25,Case,SKU-1002,EA
