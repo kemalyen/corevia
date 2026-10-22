@@ -24,10 +24,9 @@ class ShowIntegrationStatus extends Command
             ->get();
 
         $this->table(
-            ['ID', 'Source', 'Dataset', 'Status', 'Rows', 'Valid', 'Failed', 'Created', 'Updated', 'Filename'],
+            ['ID', 'Dataset', 'Status', 'Rows', 'Valid', 'Failed', 'Created', 'Updated', 'Filename'],
             $ingestions->map(fn (Ingestion $ingestion): array => [
                 $ingestion->id,
-                $ingestion->source,
                 $ingestion->dataset->value,
                 $ingestion->status->value,
                 $ingestion->total_rows,

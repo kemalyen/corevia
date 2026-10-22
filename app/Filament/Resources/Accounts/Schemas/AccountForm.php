@@ -18,6 +18,7 @@ class AccountForm
                 Section::make('Edit Account Details')
                     ->columns(2)
                     ->schema([
+                        TextInput::make('account_number'),
                         TextInput::make('name')
                             ->required()->columnSpanFull(),
 

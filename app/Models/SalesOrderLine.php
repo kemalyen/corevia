@@ -22,7 +22,6 @@ class SalesOrderLine extends Model
         'sku',
         'line_number',
         'unit_of_measure',
-        'source',
         'external_id',
     ];
 

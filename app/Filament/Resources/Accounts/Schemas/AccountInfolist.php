@@ -16,6 +16,7 @@ class AccountInfolist
                     ->columns(2)
                     ->schema([
                         TextEntry::make('name'),
+                        TextEntry::make('account_number'),
                         TextEntry::make('account_type'),
                         TextEntry::make('account_status'),
                         TextEntry::make('created_at')

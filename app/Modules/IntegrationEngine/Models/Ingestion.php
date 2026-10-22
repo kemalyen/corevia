@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Ingestion extends Model
 {
     protected $fillable = [
-        'source', 'dataset', 'original_filename', 'processing_filename', 'checksum', 'status',
+        'dataset', 'original_filename', 'processing_filename', 'checksum', 'status',
         'file_size', 'attempts', 'total_rows', 'valid_rows', 'failed_rows', 'created_records',
         'updated_records', 'last_error', 'discovered_at', 'claimed_at', 'queued_at',
         'processing_started_at', 'completed_at', 'failed_at',

@@ -17,7 +17,7 @@ class AccountsTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('account_type')
+                TextColumn::make('account_number')
                     ->searchable(),
                 TextColumn::make('account_status')->badge(),
                 TextColumn::make('account_type')->badge(),

@@ -21,7 +21,6 @@ class SalesOrder extends Model
         'total_amount',
         'status',
         'currency',
-        'source',
         'external_id',
     ];
 

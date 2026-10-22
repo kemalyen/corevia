@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StagedSalesOrderRow extends Model
 {
     protected $fillable = [
-        'row_number', 'order_external_id', 'order_number', 'order_date', 'customer_external_id',
+        'row_number', 'order_external_id', 'order_number', 'order_date', 'account_external_id',
         'status', 'currency', 'total_amount', 'line_external_id', 'line_number',
         'product_external_id', 'quantity', 'unit_price', 'line_total', 'description', 'sku',
         'unit_of_measure',

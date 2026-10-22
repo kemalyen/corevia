@@ -11,23 +11,21 @@ use Illuminate\Support\Facades\DB;
 class UpsertSalesOrder
 {
     /**
-     * @param  array{external_id: string, order_number: string, order_date: string, customer_external_id: string, status: string, currency: string, total_amount: string, lines: array<int, array{external_id: string, line_number: ?string, product_external_id: string, quantity: string, unit_price: string, total_price: string, description: ?string, sku: ?string, unit_of_measure: ?string}>}  $data
+     * @param  array{external_id: string, order_number: string, order_date: string, account_external_id: string, status: string, currency: string, total_amount: string, lines: array<int, array{external_id: string, line_number: ?string, product_external_id: string, quantity: string, unit_price: string, total_price: string, description: ?string, sku: ?string, unit_of_measure: ?string}>}  $data
      * @return array{created: int, updated: int}
      */
-    public function handle(string $source, array $data): array
+    public function handle(array $data): array
     {
         $account = Account::query()
-            ->where('source', $source)
-            ->where('external_id', $data['customer_external_id'])
+            ->where('external_id', $data['account_external_id'])
             ->first();
 
         if ($account === null) {
-            throw new DomainException("Unknown customer [{$data['customer_external_id']}].");
+            throw new DomainException("Unknown account [{$data['account_external_id']}].");
         }
 
         $productExternalIds = collect($data['lines'])->pluck('product_external_id')->unique()->values();
         $products = Product::query()
-            ->where('source', $source)
             ->whereIn('external_id', $productExternalIds)
             ->get()
             ->keyBy('external_id');
@@ -37,9 +35,8 @@ class UpsertSalesOrder
             throw new DomainException("Unknown product [{$unknownProduct}].");
         }
 
-        return DB::transaction(function () use ($account, $data, $products, $source): array {
+        return DB::transaction(function () use ($account, $data, $products): array {
             $salesOrder = SalesOrder::query()->firstOrNew([
-                'source' => $source,
                 'external_id' => $data['external_id'],
             ]);
             $created = $salesOrder->exists ? 0 : 1;
@@ -56,7 +53,6 @@ class UpsertSalesOrder
 
             foreach ($data['lines'] as $lineData) {
                 $line = $salesOrder->lines()->firstOrNew([
-                    'source' => $source,
                     'external_id' => $lineData['external_id'],
                 ]);
                 $created += $line->exists ? 0 : 1;

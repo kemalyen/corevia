@@ -59,11 +59,7 @@ class RecoverIngestion
                 }
             } elseif ($ingestion->status === IngestionStatus::DISCOVERED) {
                 if (! $this->paths->processingFileExists($ingestion)) {
-                    $incomingPath = $this->paths->incomingPath(
-                        $ingestion->source,
-                        $ingestion->dataset,
-                        $ingestion->original_filename,
-                    );
+                    $incomingPath = $this->paths->incomingPath($ingestion->original_filename);
 
                     if (! is_file($incomingPath) || is_link($incomingPath)) {
                         $ingestion->update(['last_error' => 'Recovery could not find a safe incoming or processing file.']);

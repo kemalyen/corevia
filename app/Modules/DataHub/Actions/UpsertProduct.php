@@ -10,10 +10,9 @@ class UpsertProduct
     /**
      * @param  array{external_id: string, sku: string, name: string, description: ?string, price: string, currency: string}  $data
      */
-    public function handle(string $source, array $data): bool
+    public function handle(array $data): bool
     {
         $product = Product::query()->firstOrNew([
-            'source' => $source,
             'external_id' => $data['external_id'],
         ]);
 

@@ -17,7 +17,6 @@ class Product extends Model
         'price',
         'sku',
         'currency',
-        'source',
         'external_id',
     ];
 

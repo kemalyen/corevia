@@ -14,27 +14,23 @@ class IntegrationPaths
 
     public function ensureDirectories(): void
     {
-        foreach (array_keys(config('integration.sources', [])) as $source) {
-            foreach (IntegrationDataset::cases() as $dataset) {
-                foreach (['in', 'processing', 'archive', 'failed'] as $area) {
-                    $this->files->ensureDirectoryExists(
-                        $this->directory($area, $source, $dataset),
-                        (int) config('integration.directory_mode'),
-                        true,
-                    );
-                }
-            }
+        foreach (['in', 'processing', 'archive', 'failed'] as $area) {
+            $this->files->ensureDirectoryExists(
+                $this->directory($area),
+                (int) config('integration.directory_mode'),
+                true,
+            );
         }
     }
 
-    public function incomingDirectory(string $source, IntegrationDataset $dataset): string
+    public function incomingDirectory(): string
     {
-        return $this->directory('in', $source, $dataset);
+        return $this->directory('in');
     }
 
-    public function incomingPath(string $source, IntegrationDataset $dataset, string $filename): string
+    public function incomingPath(string $filename): string
     {
-        return $this->incomingDirectory($source, $dataset).DIRECTORY_SEPARATOR.basename($filename);
+        return $this->incomingDirectory().DIRECTORY_SEPARATOR.basename($filename);
     }
 
     public function processingPath(Ingestion $ingestion): string
@@ -43,7 +39,7 @@ class IntegrationPaths
             throw new RuntimeException('The ingestion has not been assigned a processing filename.');
         }
 
-        return $this->directory('processing', $ingestion->source, $ingestion->dataset)
+        return $this->directory('processing')
             .DIRECTORY_SEPARATOR.$ingestion->processing_filename;
     }
 
@@ -55,7 +51,7 @@ class IntegrationPaths
     public function claim(Ingestion $ingestion, string $incomingPath): string
     {
         $processingFilename = $ingestion->processing_filename ?? $this->newProcessingFilename($ingestion);
-        $processingPath = $this->directory('processing', $ingestion->source, $ingestion->dataset)
+        $processingPath = $this->directory('processing')
             .DIRECTORY_SEPARATOR.$processingFilename;
 
         if (! rename($incomingPath, $processingPath)) {
@@ -69,14 +65,14 @@ class IntegrationPaths
 
     public function newProcessingFilename(Ingestion $ingestion): string
     {
-        return $ingestion->id.'-'.Str::uuid().'.csv';
+        return $this->datasetPrefix($ingestion->dataset).$ingestion->id.'-'.Str::uuid().'.csv';
     }
 
     public function finish(Ingestion $ingestion, bool $successful): string
     {
         $sourcePath = $this->processingPath($ingestion);
         $area = $successful ? 'archive' : 'failed';
-        $destination = $this->directory($area, $ingestion->source, $ingestion->dataset)
+        $destination = $this->directory($area)
             .DIRECTORY_SEPARATOR.now()->format('Y-m-d')
             .DIRECTORY_SEPARATOR.$ingestion->processing_filename;
 
@@ -97,16 +93,16 @@ class IntegrationPaths
         return $destination;
     }
 
-    public function archiveDuplicate(string $source, IntegrationDataset $dataset, string $path): void
+    public function archiveDuplicate(IntegrationDataset $dataset, string $path): void
     {
-        $directory = $this->directory('archive', $source, $dataset)
+        $directory = $this->directory('archive')
             .DIRECTORY_SEPARATOR.'duplicates'.DIRECTORY_SEPARATOR.now()->format('Y-m-d');
         $this->files->ensureDirectoryExists(
             $directory,
             (int) config('integration.directory_mode'),
             true,
         );
-        $destination = $directory.DIRECTORY_SEPARATOR.Str::uuid().'.csv';
+        $destination = $directory.DIRECTORY_SEPARATOR.$this->datasetPrefix($dataset).Str::uuid().'.csv';
 
         if (! rename($path, $destination)) {
             throw new RuntimeException('The duplicate file could not be archived.');
@@ -121,7 +117,7 @@ class IntegrationPaths
             return false;
         }
 
-        $pattern = $this->directory('failed', $ingestion->source, $ingestion->dataset)
+        $pattern = $this->directory('failed')
             .DIRECTORY_SEPARATOR.'*'.DIRECTORY_SEPARATOR.$ingestion->processing_filename;
         $matches = glob($pattern, GLOB_NOSORT);
 
@@ -138,12 +134,15 @@ class IntegrationPaths
         return true;
     }
 
-    private function directory(string $area, string $source, IntegrationDataset $dataset): string
+    private function directory(string $area): string
     {
         return rtrim((string) config('integration.root'), DIRECTORY_SEPARATOR)
-            .DIRECTORY_SEPARATOR.$area
-            .DIRECTORY_SEPARATOR.$source
-            .DIRECTORY_SEPARATOR.$dataset->value;
+            .DIRECTORY_SEPARATOR.$area;
+    }
+
+    private function datasetPrefix(IntegrationDataset $dataset): string
+    {
+        return (string) config("integration.datasets.{$dataset->value}.prefix");
     }
 
     private function writeErrorManifest(Ingestion $ingestion, string $destination): void
@@ -151,7 +150,6 @@ class IntegrationPaths
         $temporaryPath = $destination.'.tmp-'.Str::uuid();
         $contents = json_encode([
             'ingestion_id' => $ingestion->id,
-            'source' => $ingestion->source,
             'dataset' => $ingestion->dataset->value,
             'original_filename' => $ingestion->original_filename,
             'checksum' => $ingestion->checksum,

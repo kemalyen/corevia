@@ -22,51 +22,49 @@ class DiscoverReadyFiles
         $this->paths->ensureDirectories();
         $dispatched = 0;
 
-        foreach (array_keys(config('integration.sources', [])) as $source) {
-            foreach (IntegrationDataset::cases() as $dataset) {
-                $hadReadyFiles = false;
+        foreach (IntegrationDataset::cases() as $dataset) {
+            $hadReadyFiles = false;
 
-                foreach (new DirectoryIterator($this->paths->incomingDirectory($source, $dataset)) as $file) {
-                    if ($file->isDot() || ! str_ends_with($file->getFilename(), (string) config('integration.ready_suffix'))) {
-                        continue;
-                    }
-
-                    $hadReadyFiles = true;
-
-                    if ($file->isLink() || ! $file->isFile()) {
-                        Log::warning('Integration discovery ignored an unsafe directory entry.', [
-                            'source' => $source,
-                            'dataset' => $dataset->value,
-                            'filename' => $file->getFilename(),
-                        ]);
-
-                        continue;
-                    }
-
-                    $dispatched += $this->claim($source, $dataset, $file->getPathname());
+            foreach (new DirectoryIterator($this->paths->incomingDirectory()) as $file) {
+                if ($file->isDot()
+                    || ! str_starts_with($file->getFilename(), $this->datasetPrefix($dataset))
+                    || ! str_ends_with($file->getFilename(), (string) config('integration.ready_suffix'))) {
+                    continue;
                 }
 
-                $activeExists = Ingestion::query()
-                    ->where('source', $source)
-                    ->where('dataset', $dataset)
-                    ->whereIn('status', [
-                        IngestionStatus::DISCOVERED,
-                        IngestionStatus::CLAIMED,
-                        IngestionStatus::QUEUED,
-                        IngestionStatus::PROCESSING,
-                    ])
-                    ->exists();
+                $hadReadyFiles = true;
 
-                if ($hadReadyFiles || $activeExists) {
-                    break;
+                if ($file->isLink() || ! $file->isFile()) {
+                    Log::warning('Integration discovery ignored an unsafe directory entry.', [
+                        'dataset' => $dataset->value,
+                        'filename' => $file->getFilename(),
+                    ]);
+
+                    continue;
                 }
+
+                $dispatched += $this->claim($dataset, $file->getPathname());
+            }
+
+            $activeExists = Ingestion::query()
+                ->where('dataset', $dataset)
+                ->whereIn('status', [
+                    IngestionStatus::DISCOVERED,
+                    IngestionStatus::CLAIMED,
+                    IngestionStatus::QUEUED,
+                    IngestionStatus::PROCESSING,
+                ])
+                ->exists();
+
+            if ($hadReadyFiles || $activeExists) {
+                break;
             }
         }
 
         return $dispatched;
     }
 
-    private function claim(string $source, IntegrationDataset $dataset, string $incomingPath): int
+    private function claim(IntegrationDataset $dataset, string $incomingPath): int
     {
         $checksum = hash_file('sha256', $incomingPath);
 
@@ -74,22 +72,21 @@ class DiscoverReadyFiles
             throw new RuntimeException('A checksum could not be calculated for a ready integration file.');
         }
 
-        $lockKey = 'integration:claim:'.hash('sha256', $source.'|'.$dataset->value.'|'.$checksum);
+        $lockKey = 'integration:claim:'.hash('sha256', $dataset->value.'|'.$checksum);
 
         return (int) (Cache::lock($lockKey, 30)->get(
-            fn (): int => $this->claimWithChecksum($source, $dataset, $incomingPath, $checksum),
+            fn (): int => $this->claimWithChecksum($dataset, $incomingPath, $checksum),
         ) ?? 0);
     }
 
     private function claimWithChecksum(
-        string $source,
         IntegrationDataset $dataset,
         string $incomingPath,
         string $checksum,
     ): int {
         try {
             $ingestion = Ingestion::query()->firstOrCreate(
-                ['source' => $source, 'dataset' => $dataset, 'checksum' => $checksum],
+                ['dataset' => $dataset, 'checksum' => $checksum],
                 [
                     'original_filename' => basename($incomingPath),
                     'status' => IngestionStatus::DISCOVERED,
@@ -99,14 +96,13 @@ class DiscoverReadyFiles
             );
         } catch (UniqueConstraintViolationException) {
             $ingestion = Ingestion::query()
-                ->where('source', $source)
                 ->where('dataset', $dataset)
                 ->where('checksum', $checksum)
                 ->firstOrFail();
         }
 
         if (! $ingestion->wasRecentlyCreated && $ingestion->status !== IngestionStatus::DISCOVERED) {
-            $this->paths->archiveDuplicate($source, $dataset, $incomingPath);
+            $this->paths->archiveDuplicate($dataset, $incomingPath);
             Log::info('Duplicate integration delivery archived without reprocessing.', [
                 'ingestion_id' => $ingestion->id,
             ]);
@@ -152,5 +148,10 @@ class DiscoverReadyFiles
         }
 
         return 1;
+    }
+
+    private function datasetPrefix(IntegrationDataset $dataset): string
+    {
+        return (string) config("integration.datasets.{$dataset->value}.prefix");
     }
 }

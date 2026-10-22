@@ -1,14 +1,18 @@
 <?php
 
 $datasets = [
-    'customers' => [
+    'accounts' => [
+        'prefix' => 'accounts-',
         'headers' => [
-            'customer_external_id' => 'external_id',
+            'account_number' => 'account_number',
+            'account_external_id' => 'external_id',
+            'account_type' => 'account_type',
             'name' => 'name',
             'status' => 'status',
         ],
     ],
     'products' => [
+        'prefix' => 'products-',
         'headers' => [
             'product_external_id' => 'external_id',
             'sku' => 'sku',
@@ -19,11 +23,12 @@ $datasets = [
         ],
     ],
     'sales_orders' => [
+        'prefix' => 'sales-orders-',
         'headers' => [
             'order_external_id' => 'order_external_id',
             'order_number' => 'order_number',
             'order_date' => 'order_date',
-            'customer_external_id' => 'customer_external_id',
+            'account_external_id' => 'account_external_id',
             'status' => 'status',
             'currency' => 'currency',
             'total_amount' => 'total_amount',
@@ -49,12 +54,8 @@ return [
     'max_file_bytes' => (int) env('INTEGRATION_MAX_FILE_BYTES', 50 * 1024 * 1024),
     'max_rows' => (int) env('INTEGRATION_MAX_ROWS', 100_000),
     'stale_after_minutes' => (int) env('INTEGRATION_STALE_AFTER_MINUTES', 30),
-    'sources' => [
-        'erp' => [
-            'delimiter' => ',',
-            'encoding' => 'UTF-8',
-            'date_format' => 'Y-m-d',
-            'datasets' => $datasets,
-        ],
-    ],
+    'delimiter' => ',',
+    'encoding' => 'UTF-8',
+    'date_format' => 'Y-m-d',
+    'datasets' => $datasets,
 ];

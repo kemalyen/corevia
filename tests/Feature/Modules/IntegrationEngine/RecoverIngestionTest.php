@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
-    $this->integrationRoot = storage_path('framework/testing/integration-'.Str::uuid());
+    $this->integrationRoot = storage_path('framework/testing/integration-' . Str::uuid());
     config()->set('integration.root', $this->integrationRoot);
     app(IntegrationPaths::class)->ensureDirectories();
 });
@@ -21,12 +21,11 @@ afterEach(function (): void {
 
 it('requeues a stranded claimed ingestion when explicitly selected', function (): void {
     Queue::fake([ProcessIngestionJob::class]);
-    $filename = Str::uuid().'.csv';
-    $contents = "customer_external_id,name,status\nC-1,Acme,active\n";
+    $filename = 'accounts-' . Str::uuid() . '.csv';
+    $contents = "account_number,account_external_id,account_type,name,status\nA-1,vendor,Acme,active\n";
     $ingestion = Ingestion::query()->create([
-        'source' => 'erp',
-        'dataset' => IntegrationDataset::CUSTOMERS,
-        'original_filename' => 'customers.ready.csv',
+        'dataset' => IntegrationDataset::ACCOUNTS,
+        'original_filename' => 'accounts-example.ready.csv',
         'processing_filename' => $filename,
         'checksum' => hash('sha256', $contents),
         'status' => IngestionStatus::CLAIMED,
@@ -34,22 +33,21 @@ it('requeues a stranded claimed ingestion when explicitly selected', function ()
         'discovered_at' => now(),
         'claimed_at' => now(),
     ]);
-    File::put($this->integrationRoot.'/processing/erp/customers/'.$filename, $contents);
+    File::put($this->integrationRoot . '/processing/' . $filename, $contents);
 
     $this->artisan("integration:recover --id={$ingestion->id}")->assertSuccessful();
 
     expect($ingestion->fresh()->status)->toBe(IngestionStatus::QUEUED);
-    Queue::assertPushed(ProcessIngestionJob::class, fn (ProcessIngestionJob $job): bool => $job->ingestionId === $ingestion->id);
+    Queue::assertPushed(ProcessIngestionJob::class, fn(ProcessIngestionJob $job): bool => $job->ingestionId === $ingestion->id);
 });
 
 it('requires an explicit flag before retrying a quarantined ingestion', function (): void {
     Queue::fake([ProcessIngestionJob::class]);
-    $filename = Str::uuid().'.csv';
-    $contents = "customer_external_id,name,status\nC-1,Acme,active\n";
+    $filename = 'accounts-' . Str::uuid() . '.csv';
+    $contents = "account_number,account_external_id,account_type,name,status\nA-1,vendor,Acme,active\n";
     $ingestion = Ingestion::query()->create([
-        'source' => 'erp',
-        'dataset' => IntegrationDataset::CUSTOMERS,
-        'original_filename' => 'customers.ready.csv',
+        'dataset' => IntegrationDataset::ACCOUNTS,
+        'original_filename' => 'accounts-example.ready.csv',
         'processing_filename' => $filename,
         'checksum' => hash('sha256', $contents),
         'status' => IngestionStatus::FAILED,
@@ -57,9 +55,9 @@ it('requires an explicit flag before retrying a quarantined ingestion', function
         'discovered_at' => now(),
         'failed_at' => now(),
     ]);
-    $failedDirectory = $this->integrationRoot.'/failed/erp/customers/2026-10-20';
+    $failedDirectory = $this->integrationRoot . '/failed/2026-10-20';
     File::ensureDirectoryExists($failedDirectory);
-    File::put($failedDirectory.'/'.$filename, $contents);
+    File::put($failedDirectory . '/' . $filename, $contents);
 
     $this->artisan("integration:recover --id={$ingestion->id}")->assertSuccessful();
     Queue::assertNothingPushed();
@@ -67,25 +65,24 @@ it('requires an explicit flag before retrying a quarantined ingestion', function
     $this->artisan("integration:recover --id={$ingestion->id} --retry-failed")->assertSuccessful();
 
     expect($ingestion->fresh()->status)->toBe(IngestionStatus::QUEUED)
-        ->and(File::exists($this->integrationRoot.'/processing/erp/customers/'.$filename))->toBeTrue();
+        ->and(File::exists($this->integrationRoot . '/processing/' . $filename))->toBeTrue();
     Queue::assertPushed(ProcessIngestionJob::class, 1);
 });
 
 it('recovers a crash after the atomic move but before the claim status update', function (): void {
     Queue::fake([ProcessIngestionJob::class]);
-    $filename = Str::uuid().'.csv';
-    $contents = "customer_external_id,name,status\nC-1,Acme,active\n";
+    $filename = 'accounts-' . Str::uuid() . '.csv';
+    $contents = "account_number,account_external_id,account_type,name,status\nA-1,vendor,Acme,active\n";
     $ingestion = Ingestion::query()->create([
-        'source' => 'erp',
-        'dataset' => IntegrationDataset::CUSTOMERS,
-        'original_filename' => 'customers.ready.csv',
+        'dataset' => IntegrationDataset::ACCOUNTS,
+        'original_filename' => 'accounts-example.ready.csv',
         'processing_filename' => $filename,
         'checksum' => hash('sha256', $contents),
         'status' => IngestionStatus::DISCOVERED,
         'file_size' => strlen($contents),
         'discovered_at' => now(),
     ]);
-    File::put($this->integrationRoot.'/processing/erp/customers/'.$filename, $contents);
+    File::put($this->integrationRoot . '/processing/' . $filename, $contents);
 
     $this->artisan("integration:recover --id={$ingestion->id}")->assertSuccessful();
 

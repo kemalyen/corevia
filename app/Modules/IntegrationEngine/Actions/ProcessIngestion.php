@@ -3,10 +3,11 @@
 namespace App\Modules\IntegrationEngine\Actions;
 
 use App\Enums\AccountStatus;
+use App\Enums\AccountType;
 use App\Enums\OrderStatus;
 use App\Models\Account;
 use App\Models\Product;
-use App\Modules\DataHub\Actions\UpsertCustomer;
+use App\Modules\DataHub\Actions\UpsertAccount;
 use App\Modules\DataHub\Actions\UpsertProduct;
 use App\Modules\DataHub\Actions\UpsertSalesOrder;
 use App\Modules\IntegrationEngine\Enums\IngestionStatus;
@@ -27,7 +28,7 @@ class ProcessIngestion
     public function __construct(
         private CsvStreamReader $reader,
         private IntegrationPaths $paths,
-        private UpsertCustomer $upsertCustomer,
+        private UpsertAccount $upsertAccount,
         private UpsertProduct $upsertProduct,
         private UpsertSalesOrder $upsertSalesOrder,
     ) {}
@@ -50,7 +51,7 @@ class ProcessIngestion
             }
 
             match ($ingestion->dataset) {
-                IntegrationDataset::CUSTOMERS => $this->processCustomers($ingestion),
+                IntegrationDataset::ACCOUNTS => $this->processAccounts($ingestion),
                 IntegrationDataset::PRODUCTS => $this->processProducts($ingestion),
                 IntegrationDataset::SALES_ORDERS => $this->processSalesOrders($ingestion),
             };
@@ -83,7 +84,7 @@ class ProcessIngestion
         Log::info('Integration ingestion processing started.', ['ingestion_id' => $ingestion->id]);
     }
 
-    private function processCustomers(Ingestion $ingestion): void
+    private function processAccounts(Ingestion $ingestion): void
     {
         $counts = $this->emptyCounts();
 
@@ -92,6 +93,8 @@ class ProcessIngestion
                 $counts['total_rows']++;
                 $data = $this->validated($ingestion, $row['row_number'], $row['data'], [
                     'external_id' => ['required', 'string', 'max:255'],
+                    'account_number' => ['required', 'string', 'max:255'],
+                    'account_type' => ['required', Rule::enum(AccountType::class)],
                     'name' => ['required', 'string', 'max:255'],
                     'status' => ['required', Rule::enum(AccountStatus::class)],
                 ]);
@@ -102,7 +105,7 @@ class ProcessIngestion
                     continue;
                 }
 
-                $created = $this->upsertCustomer->handle($ingestion->source, $data);
+                $created = $this->upsertAccount->handle($data);
                 $counts['valid_rows']++;
                 $counts[$created ? 'created_records' : 'updated_records']++;
             }
@@ -134,7 +137,7 @@ class ProcessIngestion
                 }
 
                 try {
-                    $created = $this->upsertProduct->handle($ingestion->source, $data);
+                    $created = $this->upsertProduct->handle($data);
                 } catch (DomainException $exception) {
                     $this->addError($ingestion, $row['row_number'], 'sku', 'duplicate_sku', $exception->getMessage());
                     $counts['failed_rows']++;
@@ -192,10 +195,7 @@ class ProcessIngestion
             }
 
             try {
-                $result = $this->upsertSalesOrder->handle(
-                    $ingestion->source,
-                    $this->toSalesOrderData($rows),
-                );
+                $result = $this->upsertSalesOrder->handle($this->toSalesOrderData($rows));
             } catch (DomainException $exception) {
                 $this->addError(
                     $ingestion,
@@ -222,18 +222,17 @@ class ProcessIngestion
      */
     private function rows(Ingestion $ingestion): iterable
     {
-        $sourceConfig = config("integration.sources.{$ingestion->source}");
-        $headers = data_get($sourceConfig, "datasets.{$ingestion->dataset->value}.headers");
+        $headers = config("integration.datasets.{$ingestion->dataset->value}.headers");
 
-        if (! is_array($sourceConfig) || ! is_array($headers)) {
-            throw new InvalidIngestionFile('The ingestion source or dataset is no longer configured.');
+        if (! is_array($headers)) {
+            throw new InvalidIngestionFile('The ingestion dataset is no longer configured.');
         }
 
         return $this->reader->rows(
             $this->paths->processingPath($ingestion),
             $headers,
-            (string) $sourceConfig['delimiter'],
-            (string) $sourceConfig['encoding'],
+            (string) config('integration.delimiter'),
+            (string) config('integration.encoding'),
             (int) config('integration.max_rows'),
         );
     }
@@ -265,13 +264,13 @@ class ProcessIngestion
      */
     private function salesOrderRules(Ingestion $ingestion): array
     {
-        $dateFormat = (string) config("integration.sources.{$ingestion->source}.date_format", 'Y-m-d');
+        $dateFormat = (string) config('integration.date_format', 'Y-m-d');
 
         return [
             'order_external_id' => ['required', 'string', 'max:255'],
             'order_number' => ['required', 'string', 'max:255'],
             'order_date' => ['required', "date_format:{$dateFormat}"],
-            'customer_external_id' => ['required', 'string', 'max:255'],
+            'account_external_id' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::enum(OrderStatus::class)],
             'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'total_amount' => ['required', 'decimal:0,2', 'max:9999999999999999.99'],
@@ -294,7 +293,7 @@ class ProcessIngestion
     {
         $valid = true;
         $first = $rows->first();
-        $headerFields = ['order_number', 'order_date', 'customer_external_id', 'status', 'currency', 'total_amount'];
+        $headerFields = ['order_number', 'order_date', 'account_external_id', 'status', 'currency', 'total_amount'];
 
         foreach ($rows as $row) {
             foreach ($headerFields as $field) {
@@ -311,7 +310,7 @@ class ProcessIngestion
             }
         }
 
-        $duplicateLineIds = $rows->groupBy('line_external_id')->filter(fn (Collection $lines): bool => $lines->count() > 1);
+        $duplicateLineIds = $rows->groupBy('line_external_id')->filter(fn(Collection $lines): bool => $lines->count() > 1);
 
         foreach ($duplicateLineIds as $lineExternalId => $duplicateRows) {
             foreach ($duplicateRows as $row) {
@@ -327,23 +326,21 @@ class ProcessIngestion
         }
 
         $accountExists = Account::query()
-            ->where('source', $ingestion->source)
-            ->where('external_id', $first->customer_external_id)
+            ->where('external_id', $first->account_external_id)
             ->exists();
 
         if (! $accountExists) {
             $this->addError(
                 $ingestion,
                 $first->row_number,
-                'customer_external_id',
-                'unknown_customer',
-                "Customer [{$first->customer_external_id}] does not exist for source [{$ingestion->source}].",
+                'account_external_id',
+                'unknown_account',
+                "Account [{$first->account_external_id}] does not exist.",
             );
             $valid = false;
         }
 
         $products = Product::query()
-            ->where('source', $ingestion->source)
             ->whereIn('external_id', $rows->pluck('product_external_id')->unique())
             ->get()
             ->keyBy('external_id');
@@ -357,7 +354,7 @@ class ProcessIngestion
                     $row->row_number,
                     'product_external_id',
                     'unknown_product',
-                    "Product [{$row->product_external_id}] does not exist for source [{$ingestion->source}].",
+                    "Product [{$row->product_external_id}] does not exist.",
                 );
                 $valid = false;
 
@@ -391,11 +388,11 @@ class ProcessIngestion
             'external_id' => $first->order_external_id,
             'order_number' => $first->order_number,
             'order_date' => $first->order_date->format('Y-m-d'),
-            'customer_external_id' => $first->customer_external_id,
+            'account_external_id' => $first->account_external_id,
             'status' => $first->status,
             'currency' => $first->currency,
             'total_amount' => $first->total_amount,
-            'lines' => $rows->map(fn (StagedSalesOrderRow $row): array => [
+            'lines' => $rows->map(fn(StagedSalesOrderRow $row): array => [
                 'external_id' => $row->line_external_id,
                 'line_number' => $row->line_number,
                 'product_external_id' => $row->product_external_id,
