@@ -19,6 +19,7 @@ class AccountFactory extends Factory
     {
         return [
             'name' => $this->faker->company(),
+            'account_number' =>  $this->faker->unique()->bothify('ACC-####'),
             'account_type' => $this->faker->randomElement(\App\Enums\AccountType::cases()),
             'account_status' => $this->faker->randomElement(\App\Enums\AccountStatus::cases()),
         ];
