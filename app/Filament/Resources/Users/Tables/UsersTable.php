@@ -6,11 +6,12 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class UsersTable
 {
@@ -23,6 +24,10 @@ class UsersTable
                 TextColumn::make('email')
                     ->label('Email address')
                     ->searchable(),
+
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean(),
 
                 TextColumn::make('roles.name')->label('Roles')
                     ->getStateUsing(fn ($record) => $record->roles->pluck('name')->map(fn ($role) => str($role)->replace(['-', '_'], ' ')->title())->join(', ')),
@@ -44,7 +49,7 @@ class UsersTable
                     ->label('Account Name'),
                 SelectFilter::make('roles.name')
                     ->relationship('roles', 'name')
-                    ->getOptionLabelFromRecordUsing(fn (Model $record) => Str::of($record->name)->replace(['-', '_'], ' ')->title()),
+                    ->getOptionLabelFromRecordUsing(fn (Role $record) => Str::of($record->name)->replace(['-', '_'], ' ')->title()),
             ])
             ->recordActions([
                 ViewAction::make(),

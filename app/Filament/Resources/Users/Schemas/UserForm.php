@@ -2,15 +2,15 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
-use App\Models\Role;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class UserForm
 {
@@ -27,6 +27,10 @@ class UserForm
                             ->label('Email address')
                             ->email()
                             ->required(),
+
+                        Toggle::make('is_active')
+                            ->label('Active user')
+                            ->default(true),
 
                         TextInput::make('password')
                             ->password()
@@ -60,7 +64,7 @@ class UserForm
                             ->relationship('roles', 'name')
                             ->multiple()
                             ->live()
-                            ->getOptionLabelFromRecordUsing(fn (Model $record) => Str::of($record->name)->replace(['-', '_'], ' ')->title())
+                            ->getOptionLabelFromRecordUsing(fn (Role $record) => Str::of($record->name)->replace(['-', '_'], ' ')->title())
                             ->required()
                             ->preload(),
                     ])->columnSpanFull(),
