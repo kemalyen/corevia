@@ -21,6 +21,7 @@ class AccountsTable
                     ->searchable(),
                 TextColumn::make('account_status')->badge(),
                 TextColumn::make('account_type')->badge(),
+                TextColumn::make('product_access_mode')->label('Product access')->badge(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

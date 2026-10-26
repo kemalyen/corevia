@@ -4,24 +4,35 @@ namespace App\Portal\Queries;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Portal\Catalogue\AccountProductVisibility;
+use App\Portal\Pricing\EffectivePrice;
+use App\Portal\Pricing\ResolveAccountProductPrice;
 use App\Portal\VendorAccountContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class VendorCatalogueQuery
 {
-    public function __construct(private VendorAccountContext $accountContext) {}
+    public function __construct(
+        private VendorAccountContext $accountContext,
+        private AccountProductVisibility $visibility,
+        private ResolveAccountProductPrice $priceResolver,
+    ) {}
 
     /** @return Builder<Product> */
     public function forUser(User $user): Builder
     {
-        $this->accountContext->resolve($user);
+        $account = $this->accountContext->resolve($user);
 
-        return Product::query()->orderBy('sku');
+        return $this->visibility->query($account)
+            ->with(['accountPrices' => fn ($query) => $query
+                ->whereBelongsTo($account)
+                ->select(['id', 'account_id', 'product_id', 'amount', 'currency', 'unit_of_measure'])])
+            ->orderBy('sku');
     }
 
     /**
-     * @return array{results: list<array{id: int, code: string, name: string, label: string, availability: null}>, has_more: bool}
+     * @return array{results: list<array{id: int, code: string, name: string, label: string, availability: null, price: array{amount: string, currency: string, unit_of_measure: string, source: string}|null}>, has_more: bool}
      */
     public function search(User $user, string $search, int $limit = 20): array
     {
@@ -43,7 +54,8 @@ class VendorCatalogueQuery
             ->orderBy('sku')
             ->orderBy('id')
             ->limit($limit + 1)
-            ->get(['id', 'sku', 'name']);
+            ->get(['id', 'sku', 'name', 'price', 'currency', 'unit_of_measure']);
+        $account = $this->accountContext->resolve($user);
         $results = [];
 
         foreach ($products->take($limit) as $product) {
@@ -53,6 +65,7 @@ class VendorCatalogueQuery
                 'name' => $product->name,
                 'label' => "{$product->sku} — {$product->name}",
                 'availability' => null,
+                'price' => $this->priceResolver->resolve($account, $product)?->toArray(),
             ];
         }
 
@@ -66,7 +79,12 @@ class VendorCatalogueQuery
     {
         return $this->forUser($user)
             ->whereKey($productId)
-            ->first(['id', 'sku', 'name', 'description', 'price', 'currency']);
+            ->first(['id', 'sku', 'name', 'description', 'price', 'currency', 'unit_of_measure']);
+    }
+
+    public function effectivePriceForUser(User $user, Product $product): ?EffectivePrice
+    {
+        return $this->priceResolver->resolve($this->accountContext->resolve($user), $product);
     }
 
     private function escapeLike(string $value): string

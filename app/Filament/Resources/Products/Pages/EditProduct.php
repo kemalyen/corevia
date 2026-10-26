@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
+use App\Portal\Support\CatalogueAuditLogger;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
@@ -20,8 +21,13 @@ class EditProduct extends EditRecord
         ];
     }
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return '';
+    }
+
+    protected function afterSave(): void
+    {
+        app(CatalogueAuditLogger::class)->productCategoriesChanged($this->record);
     }
 }

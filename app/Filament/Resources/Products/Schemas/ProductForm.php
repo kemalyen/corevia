@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
-use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class ProductForm
 {
@@ -21,13 +22,24 @@ class ProductForm
                         Textarea::make('description')
                             ->columnSpanFull(),
                         TextInput::make('price')
-                            ->required()
                             ->numeric()
-                            ->prefix('$'),
+                            ->minValue(0)
+                            ->step(0.0001)
+                            ->helperText('Normal feed price. Account-specific prices are managed on the account.'),
+                        TextInput::make('currency')
+                            ->length(3)
+                            ->regex('/^[A-Z]{3}$/'),
+                        TextInput::make('unit_of_measure')
+                            ->maxLength(32),
                         TextInput::make('sku')
                             ->label('SKU')
                             ->required(),
-                    ])->columnSpanFull()
+                        Select::make('categories')
+                            ->relationship('categories', 'name')
+                            ->searchable()
+                            ->multiple()
+                            ->columnSpanFull(),
+                    ])->columnSpanFull(),
             ]);
     }
 }

@@ -14,7 +14,7 @@ use Livewire\Livewire;
 
 function catalogueSearchVendor(?Account $account = null): User
 {
-    $account ??= Account::factory()->create([
+    $account ??= Account::factory()->withAllProducts()->create([
         'account_type' => AccountType::VENDOR,
         'account_status' => AccountStatus::ACTIVE,
     ]);
@@ -118,7 +118,7 @@ it('rejects a tampered product identifier during selection', function (): void {
 
 it('clears the selected product and draft when the active account changes', function (): void {
     $vendor = catalogueSearchVendor();
-    $newAccount = Account::factory()->create([
+    $newAccount = Account::factory()->withAllProducts()->create([
         'account_type' => AccountType::VENDOR,
         'account_status' => AccountStatus::ACTIVE,
     ]);

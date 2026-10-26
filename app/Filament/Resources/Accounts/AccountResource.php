@@ -6,6 +6,7 @@ use App\Filament\Resources\Accounts\Pages\CreateAccount;
 use App\Filament\Resources\Accounts\Pages\EditAccount;
 use App\Filament\Resources\Accounts\Pages\ListAccounts;
 use App\Filament\Resources\Accounts\Pages\ViewAccount;
+use App\Filament\Resources\Accounts\RelationManagers\AccountPricesRelationManager;
 use App\Filament\Resources\Accounts\RelationManagers\SalesOrdersRelationManager;
 use App\Filament\Resources\Accounts\RelationManagers\UsersRelationManager;
 use App\Filament\Resources\Accounts\Schemas\AccountForm;
@@ -42,6 +43,7 @@ class AccountResource extends Resource
     public static function getRelations(): array
     {
         return [
+            'accountPrices' => AccountPricesRelationManager::class,
             'users' => UsersRelationManager::class,
             'sales_orders' => SalesOrdersRelationManager::class,
         ];

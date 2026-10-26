@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\User;
 use App\Portal\Actions\AddVendorOrderDraftLine;
+use App\Portal\Actions\RefreshVendorOrderDraft;
 use App\Portal\Actions\SubmitVendorOrder;
 use App\Portal\Queries\VendorCatalogueQuery;
 use App\Portal\VendorAccountContext;
@@ -137,6 +138,7 @@ class Create extends Component
 
     public function submit(
         VendorAccountContext $accountContext,
+        RefreshVendorOrderDraft $refreshDraft,
         SubmitVendorOrder $submitOrder,
     ): void {
         $this->synchroniseAccount($accountContext);
@@ -151,6 +153,21 @@ class Create extends Component
             'lines.*.product_id' => ['required', 'integer'],
             'lines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999.9999', 'decimal:0,4'],
         ]);
+
+        try {
+            $refreshedLines = $refreshDraft->handle($this->user(), $validated['lines']);
+        } catch (DomainException $exception) {
+            throw ValidationException::withMessages(['lines' => $exception->getMessage()]);
+        }
+
+        if ($this->pricingSignature($this->lines) !== $this->pricingSignature($refreshedLines)) {
+            $this->lines = $refreshedLines;
+
+            throw ValidationException::withMessages([
+                'lines' => 'Pricing or product access changed. Review the revised draft and confirm submission again.',
+            ]);
+        }
+
         try {
             $order = $submitOrder->handle(
                 $this->user(),
@@ -159,9 +176,17 @@ class Create extends Component
                 array_map(fn (array $line): array => [
                     'product_id' => (int) $line['product_id'],
                     'quantity' => (string) $line['quantity'],
-                ], $validated['lines']),
+                    'price' => (string) $line['price'],
+                    'currency' => (string) $line['currency'],
+                    'unit_of_measure' => (string) ($line['unit_of_measure'] ?? ''),
+                    'price_source' => (string) $line['price_source'],
+                ], $refreshedLines),
             );
         } catch (DomainException $exception) {
+            if (Str::startsWith($exception->getMessage(), 'Pricing changed')) {
+                $this->lines = $refreshDraft->handle($this->user(), $refreshedLines);
+            }
+
             throw ValidationException::withMessages(['lines' => $exception->getMessage()]);
         }
 
@@ -204,5 +229,21 @@ class Create extends Component
         }
 
         return $user;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $lines
+     * @return array<int, array<string, string|int>>
+     */
+    private function pricingSignature(array $lines): array
+    {
+        return array_map(fn (array $line): array => [
+            'product_id' => (int) ($line['product_id'] ?? 0),
+            'quantity' => (string) ($line['quantity'] ?? ''),
+            'price' => (string) ($line['price'] ?? ''),
+            'currency' => (string) ($line['currency'] ?? ''),
+            'unit_of_measure' => (string) ($line['unit_of_measure'] ?? ''),
+            'price_source' => (string) ($line['price_source'] ?? ''),
+        ], $lines);
     }
 }

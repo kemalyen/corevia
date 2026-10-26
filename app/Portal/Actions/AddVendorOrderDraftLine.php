@@ -4,6 +4,7 @@ namespace App\Portal\Actions;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Portal\Orders\NormalizeOrderQuantity;
 use App\Portal\Queries\VendorCatalogueQuery;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -11,7 +12,10 @@ use DomainException;
 
 class AddVendorOrderDraftLine
 {
-    public function __construct(private VendorCatalogueQuery $catalogueQuery) {}
+    public function __construct(
+        private VendorCatalogueQuery $catalogueQuery,
+        private NormalizeOrderQuantity $normalizeQuantity,
+    ) {}
 
     /**
      * @param  array<int, array<string, mixed>>  $lines
@@ -19,38 +23,37 @@ class AddVendorOrderDraftLine
      */
     public function handle(User $user, int $productId, string|int|float $quantity, array $lines): array
     {
-        $normalizedQuantity = (string) $quantity;
-
-        if (preg_match('/^\d{1,6}(?:\.\d{1,4})?$/', $normalizedQuantity) !== 1
-            || BigDecimal::of($normalizedQuantity)->isLessThanOrEqualTo(0)) {
-            throw new DomainException('The quantity must be greater than zero with no more than four decimal places.');
-        }
+        $normalizedQuantity = $this->normalizeQuantity->handle($quantity);
 
         $product = $this->catalogueQuery->findOrderableForUser($user, $productId);
 
-        if (! $product instanceof Product || $product->currency === null) {
+        if (! $product instanceof Product) {
             throw new DomainException('This product is not available with valid pricing.');
         }
 
-        if (BigDecimal::of((string) $product->price)->isNegative()) {
-            throw new DomainException('This product is not available with valid pricing.');
+        $effectivePrice = $this->catalogueQuery->effectivePriceForUser($user, $product);
+
+        if ($effectivePrice === null) {
+            throw new DomainException('Pricing is unavailable for this product, currency, and unit.');
         }
 
-        $otherCurrency = collect($lines)
-            ->pluck('currency')
-            ->first(fn (string $currency): bool => $currency !== $product->currency);
+        $otherCurrency = collect($lines)->first(fn (mixed $line): bool => ! is_array($line)
+            || ! isset($line['currency'])
+            || $line['currency'] !== $effectivePrice->currency);
 
         if ($otherCurrency !== null) {
             throw new DomainException('All lines in one order must use the same currency.');
         }
 
-        $price = (string) $product->price;
+        $price = $effectivePrice->amount;
         $line = [
             'product_id' => $product->getKey(),
             'sku' => $product->sku,
             'name' => $product->name,
             'price' => $price,
-            'currency' => $product->currency,
+            'currency' => $effectivePrice->currency,
+            'unit_of_measure' => $effectivePrice->unitOfMeasure,
+            'price_source' => $effectivePrice->source->value,
             'quantity' => $normalizedQuantity,
             'total' => (string) BigDecimal::of($price)
                 ->multipliedBy($normalizedQuantity)

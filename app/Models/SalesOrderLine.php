@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PriceSource;
 use Database\Factories\SalesOrderLineFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $description
  * @property string|null $sku
  * @property string|null $unit_of_measure
+ * @property string|null $currency
+ * @property PriceSource|null $price_source
  */
 class SalesOrderLine extends Model
 {
@@ -28,6 +31,8 @@ class SalesOrderLine extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'currency',
+        'price_source',
         'total_price',
         'description',
         'sku',
@@ -38,8 +43,9 @@ class SalesOrderLine extends Model
 
     protected $casts = [
         'quantity' => 'decimal:4',
-        'unit_price' => 'decimal:2',
+        'unit_price' => 'decimal:4',
         'total_price' => 'decimal:2',
+        'price_source' => PriceSource::class,
     ];
 
     /** @return BelongsTo<Product, $this> */

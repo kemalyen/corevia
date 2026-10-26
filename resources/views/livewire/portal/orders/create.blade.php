@@ -197,6 +197,7 @@
                         >
                             <span class="block font-semibold text-slate-900" x-text="result.code"></span>
                             <span class="block font-normal text-slate-600" x-text="result.name"></span>
+                            <span class="block text-xs font-normal text-slate-500" x-text="result.price ? `${result.price.currency} ${result.price.amount} · ${result.price.source.replaceAll('_', ' ')}` : 'Price unavailable'"></span>
                         </button>
                     </template>
 
@@ -233,7 +234,10 @@
                             <tr wire:key="draft-line-{{ data_get($line, 'product_id', $index) }}">
                                 <td class="px-5 py-4"><p class="font-medium">{{ data_get($line, 'sku', 'Pending validation') }}</p><p class="text-slate-500">{{ data_get($line, 'name', '') }}</p></td>
                                 <td class="px-5 py-4">{{ data_get($line, 'quantity', '') }}</td>
-                                <td class="px-5 py-4 text-right">{{ data_get($line, 'currency', '') }} {{ number_format((float) data_get($line, 'price', 0), 2) }}</td>
+                                <td class="px-5 py-4 text-right">
+                                    {{ data_get($line, 'currency', '') }} {{ number_format((float) data_get($line, 'price', 0), 4) }}
+                                    <span class="block text-xs text-slate-500">{{ data_get($line, 'unit_of_measure') ?: 'Unit not supplied' }} · {{ str(data_get($line, 'price_source', ''))->replace('_', ' ')->title() }}</span>
+                                </td>
                                 <td class="px-5 py-4 text-right font-medium">{{ data_get($line, 'currency', '') }} {{ number_format((float) data_get($line, 'total', 0), 2) }}</td>
                                 <td class="px-5 py-4 text-right"><button type="button" wire:click="removeLine({{ $index }})" class="text-sm font-medium text-red-600">Remove</button></td>
                             </tr>

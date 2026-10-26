@@ -126,7 +126,7 @@ class ProcessIngestion
                     'sku' => ['required', 'string', 'max:255'],
                     'name' => ['required', 'string', 'max:255'],
                     'description' => ['nullable', 'string'],
-                    'price' => ['required', 'decimal:0,2', 'max:9999999999999999.99'],
+                    'price' => ['required', 'decimal:0,4', 'gte:0', 'max:99999999999999.9999'],
                     'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
                 ]);
 
@@ -310,7 +310,7 @@ class ProcessIngestion
             }
         }
 
-        $duplicateLineIds = $rows->groupBy('line_external_id')->filter(fn(Collection $lines): bool => $lines->count() > 1);
+        $duplicateLineIds = $rows->groupBy('line_external_id')->filter(fn (Collection $lines): bool => $lines->count() > 1);
 
         foreach ($duplicateLineIds as $lineExternalId => $duplicateRows) {
             foreach ($duplicateRows as $row) {
@@ -392,7 +392,7 @@ class ProcessIngestion
             'status' => $first->status,
             'currency' => $first->currency,
             'total_amount' => $first->total_amount,
-            'lines' => $rows->map(fn(StagedSalesOrderRow $row): array => [
+            'lines' => $rows->map(fn (StagedSalesOrderRow $row): array => [
                 'external_id' => $row->line_external_id,
                 'line_number' => $row->line_number,
                 'product_external_id' => $row->product_external_id,

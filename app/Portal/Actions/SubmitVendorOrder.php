@@ -5,9 +5,12 @@ namespace App\Portal\Actions;
 use App\Enums\ErpSyncState;
 use App\Enums\OrderOrigin;
 use App\Enums\OrderStatus;
+use App\Models\AccountProductPrice;
 use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\User;
+use App\Portal\Orders\NormalizeOrderQuantity;
+use App\Portal\Pricing\ResolveAccountProductPrice;
 use App\Portal\Queries\VendorCatalogueQuery;
 use App\Portal\VendorAccountContext;
 use Brick\Math\BigDecimal;
@@ -22,6 +25,8 @@ class SubmitVendorOrder
     public function __construct(
         private VendorAccountContext $accountContext,
         private VendorCatalogueQuery $catalogueQuery,
+        private ResolveAccountProductPrice $priceResolver,
+        private NormalizeOrderQuantity $normalizeQuantity,
     ) {}
 
     /**
@@ -54,16 +59,27 @@ class SubmitVendorOrder
                 throw new DomainException('Every order line must contain a valid product and positive quantity.');
             }
 
-            $normalizedQuantity = (string) $quantity;
-
-            if (preg_match('/^\d{1,6}(?:\.\d{1,4})?$/', $normalizedQuantity) !== 1
-                || BigDecimal::of($normalizedQuantity)->isLessThanOrEqualTo(0)) {
+            try {
+                $normalizedQuantity = $this->normalizeQuantity->handle($quantity);
+            } catch (DomainException) {
                 throw new DomainException('Every order line must contain a valid product and positive quantity.');
+            }
+
+            if (! isset($line['price'], $line['currency'], $line['price_source'])
+                || ! is_scalar($line['price'])
+                || ! is_string($line['currency'])
+                || ! is_string($line['price_source'])
+                || (! isset($line['unit_of_measure']) && ! array_key_exists('unit_of_measure', $line))) {
+                throw new DomainException('Review current server pricing before submitting the order.');
             }
 
             $validatedLines[] = [
                 'product_id' => $line['product_id'],
                 'quantity' => $normalizedQuantity,
+                'price' => (string) $line['price'],
+                'currency' => $line['currency'],
+                'unit_of_measure' => (string) $line['unit_of_measure'],
+                'price_source' => $line['price_source'],
             ];
         }
 
@@ -89,22 +105,46 @@ class SubmitVendorOrder
             $products = $this->catalogueQuery->forUser($user)
                 ->whereKey($productIds)
                 ->lockForUpdate()
-                ->get()
+                ->get(['id', 'sku', 'name', 'description', 'price', 'currency', 'unit_of_measure'])
                 ->keyBy('id');
 
             if ($products->count() !== $productIds->count()) {
                 throw new DomainException('One or more selected products are not available to this account.');
             }
 
-            $currencies = $products->pluck('currency')->filter()->unique();
+            $accountPrices = AccountProductPrice::query()
+                ->whereBelongsTo($account)
+                ->whereIn('product_id', $productIds)
+                ->lockForUpdate()
+                ->get(['id', 'account_id', 'product_id', 'amount', 'currency', 'unit_of_measure'])
+                ->groupBy('product_id');
 
-            if ($products->contains(fn (Product $product): bool => $product->currency === null)) {
-                throw new DomainException('A selected product does not have a currency and cannot be ordered.');
+            foreach ($products as $product) {
+                $product->setRelation('accountPrices', $accountPrices->get($product->getKey(), collect()));
             }
 
-            if ($products->contains(fn (Product $product): bool => BigDecimal::of((string) $product->price)->isNegative())) {
-                throw new DomainException('A selected product has an invalid price and cannot be ordered.');
+            $resolvedPrices = [];
+
+            foreach ($validatedLines as $line) {
+                /** @var Product $product */
+                $product = $products->get($line['product_id']);
+                $price = $this->priceResolver->resolve($account, $product);
+
+                if ($price === null) {
+                    throw new DomainException("Pricing is unavailable for product [{$product->sku}].");
+                }
+
+                if (! BigDecimal::of($price->amount)->isEqualTo(BigDecimal::of($line['price']))
+                    || $price->currency !== $line['currency']
+                    || $price->unitOfMeasure !== $line['unit_of_measure']
+                    || $price->source->value !== $line['price_source']) {
+                    throw new DomainException('Pricing changed after the draft was reviewed. Review the revised totals and confirm again.');
+                }
+
+                $resolvedPrices[$product->getKey()] = $price;
             }
+
+            $currencies = collect($resolvedPrices)->pluck('currency')->unique();
 
             if ($currencies->count() !== 1) {
                 throw new DomainException('All products in an order must use the same currency.');
@@ -113,8 +153,8 @@ class SubmitVendorOrder
             $totalAmount = '0';
 
             foreach ($validatedLines as $line) {
-                $product = $products->get($line['product_id']);
-                $lineTotal = BigDecimal::of((string) $product->price)
+                $price = $resolvedPrices[$line['product_id']];
+                $lineTotal = BigDecimal::of($price->amount)
                     ->multipliedBy($line['quantity'])
                     ->toScale(2, RoundingMode::HalfUp);
                 $totalAmount = (string) BigDecimal::of($totalAmount)->plus($lineTotal);
@@ -136,19 +176,22 @@ class SubmitVendorOrder
 
             foreach ($validatedLines as $index => $line) {
                 $product = $products->get($line['product_id']);
-                $lineTotal = (string) BigDecimal::of((string) $product->price)
+                $price = $resolvedPrices[$line['product_id']];
+                $lineTotal = (string) BigDecimal::of($price->amount)
                     ->multipliedBy($line['quantity'])
                     ->toScale(2, RoundingMode::HalfUp);
 
                 $order->lines()->create([
                     'product_id' => $product->getKey(),
                     'quantity' => $line['quantity'],
-                    'unit_price' => $product->price,
+                    'unit_price' => $price->amount,
+                    'currency' => $price->currency,
+                    'price_source' => $price->source,
                     'total_price' => $lineTotal,
                     'description' => $product->description ?? $product->name,
                     'sku' => $product->sku,
                     'line_number' => (string) ($index + 1),
-                    'unit_of_measure' => null,
+                    'unit_of_measure' => $price->unitOfMeasure !== '' ? $price->unitOfMeasure : null,
                     'external_id' => null,
                 ]);
             }
@@ -157,3 +200,5 @@ class SubmitVendorOrder
         }, 3));
     }
 }
+use App\Portal\Orders\NormalizeOrderQuantity;
+use App\Portal\Pricing\ResolveAccountProductPrice;

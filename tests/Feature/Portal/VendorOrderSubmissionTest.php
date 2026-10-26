@@ -9,13 +9,14 @@ use App\Models\Account;
 use App\Models\Product;
 use App\Models\User;
 use App\Portal\Actions\SubmitVendorOrder;
+use App\Portal\Actions\RefreshVendorOrderDraft;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 function orderSubmissionVendor(): User
 {
-    $account = Account::factory()->create([
+    $account = Account::factory()->withAllProducts()->create([
         'account_type' => AccountType::VENDOR,
         'account_status' => AccountStatus::ACTIVE,
     ]);
@@ -31,7 +32,7 @@ it('uses server-side product pricing and creates a pending portal request', func
     $product = Product::factory()->create(['price' => '12.50', 'currency' => 'GBP']);
     $this->actingAs($user);
 
-    Livewire::test(Create::class)
+    $component = Livewire::test(Create::class)
         ->set('customerReference', 'PO-104')
         ->set('lines', [[
             'product_id' => $product->getKey(),
@@ -42,6 +43,12 @@ it('uses server-side product pricing and creates a pending portal request', func
             'sku' => 'tampered',
             'name' => 'tampered',
         ]])
+        ->call('submit')
+        ->assertHasErrors(['lines'])
+        ->assertSet('lines.0.price', '12.5000')
+        ->assertSet('lines.0.total', '25.00');
+
+    $component
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -79,9 +86,12 @@ it('returns the original order when a submission token is retried', function ():
     $product = Product::factory()->create(['price' => '10.00', 'currency' => 'GBP']);
     $token = (string) Str::uuid();
     $action = app(SubmitVendorOrder::class);
+    $draft = app(RefreshVendorOrderDraft::class)->handle($user, [
+        ['product_id' => $product->getKey(), 'quantity' => '1'],
+    ]);
 
-    $first = $action->handle($user, $token, null, [['product_id' => $product->getKey(), 'quantity' => '1']]);
-    $second = $action->handle($user, $token, null, [['product_id' => $product->getKey(), 'quantity' => '99']]);
+    $first = $action->handle($user, $token, null, $draft);
+    $second = $action->handle($user, $token, null, [[...$draft[0], 'quantity' => '99']]);
 
     expect($second->is($first))->toBeTrue()
         ->and($second->erp_sync_state)->toBe(ErpSyncState::PENDING);

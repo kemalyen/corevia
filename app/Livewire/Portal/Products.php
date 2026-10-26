@@ -34,7 +34,12 @@ class Products extends Component
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             }))
-            ->paginate(15);
+            ->paginate(15)
+            ->through(function ($product) use ($catalogue, $user) {
+                $product->setAttribute('effective_price', $catalogue->effectivePriceForUser($user, $product)?->toArray());
+
+                return $product;
+            });
 
         return view('livewire.portal.products', ['products' => $products]);
     }
