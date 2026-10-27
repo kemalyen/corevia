@@ -8,19 +8,10 @@ use App\Models\AssistantConversation;
 use App\Models\Product;
 use App\Models\User;
 use App\Portal\Assistant\Contracts\AiProvider;
-use App\Portal\Assistant\Data\AiProviderResponse;
 use App\Portal\Orders\VendorOrderDraft;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Livewire\Livewire;
-
-class ConversationFakeProvider implements AiProvider
-{
-    /** @param list<array<string, mixed>> $messages */
-    public function complete(array $messages, array $tools): AiProviderResponse
-    {
-        return new AiProviderResponse('I found the trusted account information.');
-    }
-}
+use Tests\Fakes\ConversationFakeProvider;
 
 function assistantConversationVendor(?Account $account = null): User
 {

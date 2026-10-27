@@ -5,7 +5,6 @@ namespace App\Portal\Assistant;
 use App\Models\Account;
 use App\Models\User;
 use App\Portal\Assistant\Contracts\AiProvider;
-use App\Portal\Assistant\Exceptions\AiProviderException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
@@ -26,43 +25,14 @@ class VendorAssistantOrchestrator
     public function respond(User $user, Account $account, array $history): array
     {
         $maxContext = max(2, (int) config('vendor_assistant.max_context_messages'));
-        $messages = [[
-            'role' => 'system',
-            'content' => $this->systemPrompt($account),
-        ], ...array_slice($history, -$maxContext)];
-        $toolResults = [];
-        $maxRounds = max(1, min((int) config('vendor_assistant.max_tool_rounds'), 10));
-        $maxToolCalls = max(1, min((int) config('vendor_assistant.max_tool_calls'), 30));
-        $toolCallCount = 0;
-
-        for ($round = 0; $round < $maxRounds; $round++) {
-            $response = $this->provider->complete($messages, $this->tools->definitions());
-
-            if ($response->toolCalls === []) {
-                if (trim($response->content) === '') {
-                    throw new AiProviderException('The assistant provider returned an empty response.');
-                }
-
-                return ['content' => $response->content, 'tool_results' => $toolResults];
-            }
-
-            $toolCallCount += count($response->toolCalls);
-
-            if ($toolCallCount > $maxToolCalls) {
-                throw new AiProviderException('The assistant exceeded the allowed number of tool calls.');
-            }
-
-            $messages[] = [
-                'role' => 'assistant',
-                'content' => $response->content,
-                'tool_calls' => array_map(fn ($call): array => $call->toProviderArray(), $response->toolCalls),
-            ];
-
-            foreach ($response->toolCalls as $toolCall) {
+        $response = $this->provider->complete(
+            $this->systemPrompt($account),
+            array_slice($history, -$maxContext),
+            $this->tools->definitions(),
+            function (string $name, array $arguments) use ($user, $account): array {
                 try {
-                    $result = $this->tools->execute($toolCall->name, $toolCall->arguments, $user, $account);
+                    $result = $this->tools->execute($name, $arguments, $user, $account);
                     $payload = ['ok' => true, 'data' => $result];
-                    $toolResults[] = ['name' => $toolCall->name, 'result' => $result];
                     $status = 'ok';
                 } catch (Throwable $exception) {
                     $payload = ['ok' => false, 'error' => $this->safeToolError($exception)];
@@ -72,18 +42,15 @@ class VendorAssistantOrchestrator
                 Log::info('Vendor assistant tool completed.', [
                     'user_id' => $user->getKey(),
                     'account_id' => $account->getKey(),
-                    'tool' => $toolCall->name,
+                    'tool' => $name,
                     'status' => $status,
                 ]);
-                $messages[] = [
-                    'role' => 'tool',
-                    'tool_call_id' => $toolCall->id,
-                    'content' => json_encode($payload, JSON_THROW_ON_ERROR),
-                ];
-            }
-        }
 
-        throw new AiProviderException('The assistant exceeded the allowed number of tool steps.');
+                return $payload;
+            },
+        );
+
+        return ['content' => $response->content, 'tool_results' => $response->toolResults];
     }
 
     private function systemPrompt(Account $account): string

@@ -4,9 +4,9 @@ namespace App\Portal\Assistant\Data;
 
 readonly class AiProviderResponse
 {
-    /** @param list<AiToolCall> $toolCalls */
+    /** @param list<array{name: string, result: array<string, mixed>}> $toolResults */
     public function __construct(
         public string $content,
-        public array $toolCalls = [],
+        public array $toolResults = [],
     ) {}
 }

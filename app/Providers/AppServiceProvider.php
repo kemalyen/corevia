@@ -4,7 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Portal\Assistant\Contracts\AiProvider;
-use App\Portal\Assistant\OpenAiCompatibleProvider;
+use App\Portal\Assistant\LaravelAiProvider;
 use Carbon\CarbonImmutable;
 use Filament\Support\Assets\Css;
 use Filament\Support\Facades\FilamentAsset;
@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AiProvider::class, OpenAiCompatibleProvider::class);
+        $this->app->bind(AiProvider::class, LaravelAiProvider::class);
 
         FilamentAsset::register([
             Css::make('custom-stylesheet', __DIR__.'/../../resources/css/custom.css'),
