@@ -17,7 +17,7 @@
                 <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/10 lg:hidden" @click="open = false" aria-label="Close navigation">✕</button>
             </div>
             <nav class="flex flex-1 flex-col gap-1 p-4" aria-label="Portal navigation">
-                @php($links = [['portal.dashboard', 'Dashboard'], ['portal.products', 'Products & Stock'], ['portal.orders.index', 'Orders'], ['portal.reports', 'Reports'], ['portal.profile', 'Profile']])
+                @php($links = [['portal.dashboard', 'Dashboard'], ['portal.assistant', 'AI Assistant'], ['portal.products', 'Products & Stock'], ['portal.orders.index', 'Orders'], ['portal.reports', 'Reports'], ['portal.profile', 'Profile']])
                 @foreach ($links as [$routeName, $label])
                     <a wire:key="nav-{{ $routeName }}" href="{{ route($routeName) }}" wire:navigate class="rounded-xl px-4 py-3 text-sm font-medium transition {{ request()->routeIs($routeName) || ($routeName === 'portal.orders.index' && request()->routeIs('portal.orders.*')) ? 'bg-cyan-400 text-slate-950' : 'text-slate-300 hover:bg-white/10 hover:text-white' }}">{{ $label }}</a>
                 @endforeach

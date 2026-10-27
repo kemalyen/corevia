@@ -23,7 +23,7 @@ class EnsureVendorPortalAccess
         $previousAccountId = $request->session()->get('portal_account_id');
 
         if ($previousAccountId !== null && (int) $previousAccountId !== $account->getKey()) {
-            $request->session()->forget('portal_order_draft');
+            $request->session()->forget(['portal_order_draft', 'portal_assistant_conversation_id']);
         }
 
         $request->session()->put('portal_account_id', $account->getKey());

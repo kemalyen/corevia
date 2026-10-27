@@ -64,4 +64,10 @@ class Account extends Model
     {
         return $this->hasMany(AccountProductPrice::class);
     }
+
+    /** @return HasMany<AssistantConversation, $this> */
+    public function assistantConversations(): HasMany
+    {
+        return $this->hasMany(AssistantConversation::class);
+    }
 }

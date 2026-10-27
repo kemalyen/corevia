@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Portal\AuthenticatedSessionController;
 use App\Http\Controllers\Portal\OrderReportController;
+use App\Livewire\Portal\Assistant;
 use App\Livewire\Portal\Dashboard;
 use App\Livewire\Portal\Login;
 use App\Livewire\Portal\Orders\Create;
@@ -23,6 +24,7 @@ Route::prefix('portal')
     ->middleware(['auth', 'auth.session', 'vendor.portal'])
     ->group(function (): void {
         Route::livewire('/', Dashboard::class)->name('dashboard');
+        Route::livewire('/assistant', Assistant::class)->name('assistant');
         Route::livewire('/products', Products::class)->name('products');
         Route::livewire('/orders', Index::class)->name('orders.index');
         Route::livewire('/orders/create', Create::class)->name('orders.create');

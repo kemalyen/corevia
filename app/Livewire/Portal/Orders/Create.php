@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Portal\Actions\AddVendorOrderDraftLine;
 use App\Portal\Actions\RefreshVendorOrderDraft;
 use App\Portal\Actions\SubmitVendorOrder;
+use App\Portal\Orders\VendorOrderDraft;
 use App\Portal\Queries\VendorCatalogueQuery;
 use App\Portal\VendorAccountContext;
 use DomainException;
@@ -47,9 +48,10 @@ class Create extends Component
     #[Locked]
     public ?int $submittedOrderId = null;
 
-    public function mount(VendorAccountContext $accountContext): void
+    public function mount(VendorAccountContext $accountContext, VendorOrderDraft $draft): void
     {
         $this->activeAccountId = $accountContext->resolve($this->user())->getKey();
+        $this->lines = $draft->current($this->user());
         $this->submissionToken = (string) Str::uuid();
     }
 
@@ -105,6 +107,7 @@ class Create extends Component
     public function addLine(
         VendorAccountContext $accountContext,
         AddVendorOrderDraftLine $addDraftLine,
+        VendorOrderDraft $draft,
     ): void {
         $this->synchroniseAccount($accountContext);
         $validated = $this->validate([
@@ -118,6 +121,7 @@ class Create extends Component
                 $validated['quantity'],
                 $this->lines,
             );
+            $draft->replace($this->user(), $this->lines);
         } catch (DomainException $exception) {
             throw ValidationException::withMessages([
                 'selectedProductId' => $exception->getMessage(),
@@ -129,17 +133,19 @@ class Create extends Component
         $this->dispatch('product-selection-cleared');
     }
 
-    public function removeLine(int $index, VendorAccountContext $accountContext): void
+    public function removeLine(int $index, VendorAccountContext $accountContext, VendorOrderDraft $draft): void
     {
         $this->synchroniseAccount($accountContext);
         unset($this->lines[$index]);
         $this->lines = array_values($this->lines);
+        $draft->replace($this->user(), $this->lines);
     }
 
     public function submit(
         VendorAccountContext $accountContext,
         RefreshVendorOrderDraft $refreshDraft,
         SubmitVendorOrder $submitOrder,
+        VendorOrderDraft $draft,
     ): void {
         $this->synchroniseAccount($accountContext);
 
@@ -162,6 +168,7 @@ class Create extends Component
 
         if ($this->pricingSignature($this->lines) !== $this->pricingSignature($refreshedLines)) {
             $this->lines = $refreshedLines;
+            $draft->replace($this->user(), $this->lines);
 
             throw ValidationException::withMessages([
                 'lines' => 'Pricing or product access changed. Review the revised draft and confirm submission again.',
@@ -191,7 +198,7 @@ class Create extends Component
         }
 
         $this->submittedOrderId = $order->getKey();
-        session()->forget('portal_order_draft');
+        $draft->clear();
     }
 
     public function render(VendorAccountContext $accountContext): View

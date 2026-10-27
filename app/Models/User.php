@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -71,6 +72,12 @@ class User extends Authenticatable implements FilamentUser
     public function managedAccounts(): BelongsToMany
     {
         return $this->belongsToMany(Account::class, 'account_manager_to_account', 'user_id', 'account_id');
+    }
+
+    /** @return HasMany<AssistantConversation, $this> */
+    public function assistantConversations(): HasMany
+    {
+        return $this->hasMany(AssistantConversation::class);
     }
 
     public function managesAccount(Account $account): bool
