@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
             ProductSeeder::class,
+            AccountCatalogueSeeder::class,
             SalesOrderSeeder::class,
         ]);
     }

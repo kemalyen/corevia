@@ -35,11 +35,13 @@ class Account extends Model
         'product_access_mode' => AccountProductAccessMode::class,
     ];
 
+    /** @return HasMany<User, $this> */
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
     }
 
+    /** @return HasMany<SalesOrder, $this> */
     public function sales_orders(): HasMany
     {
         return $this->hasMany(SalesOrder::class);

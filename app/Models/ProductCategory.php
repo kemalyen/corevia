@@ -54,7 +54,7 @@ class ProductCategory extends Model
     /** @return BelongsToMany<Product, $this> */
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class)->withTimestamps();
+        return $this->belongsToMany(Product::class, 'product_category_product')->withTimestamps();
     }
 
     /** @return BelongsToMany<Account, $this> */

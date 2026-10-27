@@ -5,7 +5,9 @@ namespace App\Portal\Actions;
 use App\Models\Product;
 use App\Models\User;
 use App\Portal\Orders\NormalizeOrderQuantity;
+use App\Portal\Pricing\ResolveAccountProductPrice;
 use App\Portal\Queries\VendorCatalogueQuery;
+use App\Portal\VendorAccountContext;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use DomainException;
@@ -15,6 +17,8 @@ class RefreshVendorOrderDraft
     public function __construct(
         private VendorCatalogueQuery $catalogueQuery,
         private NormalizeOrderQuantity $normalizeQuantity,
+        private VendorAccountContext $accountContext,
+        private ResolveAccountProductPrice $priceResolver,
     ) {}
 
     /**
@@ -59,11 +63,12 @@ class RefreshVendorOrderDraft
         }
 
         $draft = [];
+        $account = $this->accountContext->resolve($user);
 
         foreach ($normalizedLines as $line) {
             /** @var Product $product */
             $product = $products->get($line['product_id']);
-            $price = $this->catalogueQuery->effectivePriceForUser($user, $product);
+            $price = $this->priceResolver->resolve($account, $product);
 
             if ($price === null) {
                 throw new DomainException("Pricing is unavailable for product [{$product->sku}].");

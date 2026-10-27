@@ -4,6 +4,7 @@ use App\Enums\AccountProductAccessMode;
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Models\Account;
+use App\Models\AccountProductPrice;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -68,6 +69,14 @@ it('returns no products for restricted accounts without grants and isolates gran
 
     expect($visibility->query($grantedAccount)->pluck('id')->all())->toBe([$product->getKey()])
         ->and($visibility->query($otherAccount)->exists())->toBeFalse();
+});
+
+it('does not treat an account-specific price as a product visibility grant', function (): void {
+    $account = Account::factory()->create(['product_access_mode' => AccountProductAccessMode::RESTRICTED]);
+    $product = Product::factory()->create();
+    AccountProductPrice::factory()->for($account)->for($product)->create();
+
+    expect(app(AccountProductVisibility::class)->query($account)->exists())->toBeFalse();
 });
 
 it('enforces visibility in asynchronous search and direct product lookup', function (): void {

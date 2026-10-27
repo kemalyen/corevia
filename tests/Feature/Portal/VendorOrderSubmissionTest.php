@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AccountProductAccessMode;
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use App\Enums\ErpSyncState;
@@ -8,8 +9,8 @@ use App\Livewire\Portal\Orders\Create;
 use App\Models\Account;
 use App\Models\Product;
 use App\Models\User;
-use App\Portal\Actions\SubmitVendorOrder;
 use App\Portal\Actions\RefreshVendorOrderDraft;
+use App\Portal\Actions\SubmitVendorOrder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -77,6 +78,25 @@ it('rejects a tampered product identifier', function (): void {
         ->call('submit')
         ->assertHasErrors(['lines']);
 
+    $this->assertDatabaseCount('sales_orders', 0);
+});
+
+it('revalidates product access when a prepared draft is submitted', function (): void {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $user = orderSubmissionVendor();
+    $product = Product::factory()->create(['price' => '12.50', 'currency' => 'GBP']);
+    $user->account->update(['product_access_mode' => AccountProductAccessMode::RESTRICTED]);
+    $user->account->permittedProducts()->attach($product);
+    $this->actingAs($user);
+
+    $component = Livewire::test(Create::class)
+        ->call('selectProduct', $product->getKey())
+        ->call('addLine')
+        ->assertSet('lines.0.product_id', $product->getKey());
+
+    $user->account->permittedProducts()->detach($product);
+
+    $component->call('submit')->assertHasErrors(['lines']);
     $this->assertDatabaseCount('sales_orders', 0);
 });
 

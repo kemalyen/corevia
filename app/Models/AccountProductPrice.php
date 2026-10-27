@@ -8,6 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $account_id
+ * @property int $product_id
+ * @property string $amount
+ * @property string $currency
+ * @property string $unit_of_measure
+ */
 class AccountProductPrice extends Model
 {
     /** @use HasFactory<AccountProductPriceFactory> */

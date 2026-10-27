@@ -116,6 +116,17 @@ it('rejects a tampered product identifier during selection', function (): void {
         ->assertSet('selectedProductLabel', null);
 });
 
+it('does not allow a visible product without valid pricing to be selected', function (): void {
+    $vendor = catalogueSearchVendor();
+    $product = Product::factory()->create(['price' => null, 'currency' => 'GBP']);
+    $this->actingAs($vendor);
+
+    Livewire::test(Create::class)
+        ->call('selectProduct', $product->getKey())
+        ->assertHasErrors(['selectedProductId'])
+        ->assertSet('selectedProductId', null);
+});
+
 it('clears the selected product and draft when the active account changes', function (): void {
     $vendor = catalogueSearchVendor();
     $newAccount = Account::factory()->withAllProducts()->create([

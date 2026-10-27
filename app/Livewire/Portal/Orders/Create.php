@@ -54,7 +54,7 @@ class Create extends Component
     }
 
     /**
-     * @return array{status: 'ok'|'too_short'|'error', results: list<array{id: int, code: string, name: string, label: string, availability: null}>, has_more: bool}
+     * @return array{status: 'ok'|'too_short'|'error', results: list<array{id: int, code: string, name: string, label: string, availability: null, price: array{amount: string, currency: string, unit_of_measure: string, source: string}|null}>, has_more: bool}
      */
     public function searchProducts(
         string $search,
@@ -85,7 +85,7 @@ class Create extends Component
         $this->synchroniseAccount($accountContext);
         $product = $catalogue->findOrderableForUser($this->user(), $productId);
 
-        if (! $product instanceof Product || $product->currency === null) {
+        if (! $product instanceof Product || $catalogue->effectivePriceForUser($this->user(), $product) === null) {
             throw ValidationException::withMessages([
                 'selectedProductId' => 'This product is not available with valid pricing.',
             ]);

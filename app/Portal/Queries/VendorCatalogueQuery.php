@@ -87,6 +87,22 @@ class VendorCatalogueQuery
         return $this->priceResolver->resolve($this->accountContext->resolve($user), $product);
     }
 
+    /**
+     * @param  iterable<int, Product>  $products
+     * @return array<int, array{amount: string, currency: string, unit_of_measure: string, source: string}|null>
+     */
+    public function effectivePricesForUser(User $user, iterable $products): array
+    {
+        $account = $this->accountContext->resolve($user);
+        $prices = [];
+
+        foreach ($products as $product) {
+            $prices[$product->getKey()] = $this->priceResolver->resolve($account, $product)?->toArray();
+        }
+
+        return $prices;
+    }
+
     private function escapeLike(string $value): string
     {
         return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);

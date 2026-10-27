@@ -8,7 +8,6 @@ use App\Enums\AccountType;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class AccountForm
@@ -44,13 +43,11 @@ class AccountForm
                             ->getOptionLabelFromRecordUsing(fn ($record): string => "{$record->sku} — {$record->name}")
                             ->searchable(['sku', 'name'])
                             ->multiple()
-                            ->visible(fn (Get $get): bool => $get('product_access_mode') === AccountProductAccessMode::RESTRICTED->value)
                             ->helperText('Individual grants are combined with category grants.'),
                         Select::make('permittedProductCategories')
                             ->relationship('permittedProductCategories', 'name')
                             ->searchable()
                             ->multiple()
-                            ->visible(fn (Get $get): bool => $get('product_access_mode') === AccountProductAccessMode::RESTRICTED->value)
                             ->helperText('A category grant includes products assigned to that category and all current descendants.'),
                     ])
                     ->columns(2)

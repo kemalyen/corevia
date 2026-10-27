@@ -92,7 +92,11 @@ class AccountPricesRelationManager extends RelationManager
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
-        return auth()->user()?->can('update', $ownerRecord) === true
-            && auth()->user()?->can('manage-account-catalogue') === true;
+        if (! auth()->check()) {
+            return false;
+        }
+
+        return auth()->user()->can('update', $ownerRecord)
+            && auth()->user()->can('manage-account-catalogue');
     }
 }

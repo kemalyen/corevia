@@ -37,8 +37,7 @@ class AddVendorOrderDraftLine
             throw new DomainException('Pricing is unavailable for this product, currency, and unit.');
         }
 
-        $otherCurrency = collect($lines)->first(fn (mixed $line): bool => ! is_array($line)
-            || ! isset($line['currency'])
+        $otherCurrency = collect($lines)->first(fn (array $line): bool => ! isset($line['currency'])
             || $line['currency'] !== $effectivePrice->currency);
 
         if ($otherCurrency !== null) {

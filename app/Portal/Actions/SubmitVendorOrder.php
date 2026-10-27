@@ -200,5 +200,3 @@ class SubmitVendorOrder
         }, 3));
     }
 }
-use App\Portal\Orders\NormalizeOrderQuantity;
-use App\Portal\Pricing\ResolveAccountProductPrice;
