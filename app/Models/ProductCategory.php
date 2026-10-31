@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProductCategory extends Model
@@ -35,8 +36,19 @@ class ProductCategory extends Model
                 $ancestorId = self::query()->whereKey($ancestorId)->value('parent_id');
             }
         });
-        static::saved(fn (ProductCategory $category) => app(CatalogueAuditLogger::class)->categoryChanged('saved', $category));
-        static::deleted(fn (ProductCategory $category) => app(CatalogueAuditLogger::class)->categoryChanged('deleted', $category));
+        static::saved(fn(ProductCategory $category) => app(CatalogueAuditLogger::class)->categoryChanged('saved', $category));
+        static::deleted(fn(ProductCategory $category) => app(CatalogueAuditLogger::class)->categoryChanged('deleted', $category));
+    }
+
+    public static function bulkInsert(array $data)
+    {
+        DB::table(self::getTableName())->insert($data);
+        return self::all();
+    }
+
+    public static function getTableName()
+    {
+        return with(new static)->getTable();
     }
 
     /** @return BelongsTo<ProductCategory, $this> */
