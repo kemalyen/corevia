@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\SalesOrders\RelationManagers;
 
+use App\Enums\Currency;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -34,6 +36,12 @@ class SalesorderLinesRelationManager extends RelationManager
                     ->required()
                     ->numeric()
                     ->prefix('$'),
+                Select::make('currency')
+                    ->options(Currency::class)
+                    ->enum(Currency::class)
+                    ->default(Currency::GBP->value)
+                    ->required()
+                    ->searchable(),
                 TextInput::make('total_price')
                     ->required()
                     ->numeric()

@@ -22,6 +22,8 @@ class Product extends Model
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
 
+    protected $attributes = ['currency' => 'GBP'];
+
     protected $fillable = [
         'name',
         'description',

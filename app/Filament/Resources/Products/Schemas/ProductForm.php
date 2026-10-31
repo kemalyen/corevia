@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Enums\Currency;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -26,9 +27,12 @@ class ProductForm
                             ->minValue(0)
                             ->step(0.0001)
                             ->helperText('Normal feed price. Account-specific prices are managed on the account.'),
-                        TextInput::make('currency')
-                            ->length(3)
-                            ->regex('/^[A-Z]{3}$/'),
+                        Select::make('currency')
+                            ->options(Currency::class)
+                            ->enum(Currency::class)
+                            ->default(Currency::GBP->value)
+                            ->required()
+                            ->searchable(),
                         TextInput::make('unit_of_measure')
                             ->maxLength(32),
                         TextInput::make('sku')

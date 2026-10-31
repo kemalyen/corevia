@@ -20,6 +20,8 @@ class AccountProductPrice extends Model
     /** @use HasFactory<AccountProductPriceFactory> */
     use HasFactory;
 
+    protected $attributes = ['currency' => 'GBP'];
+
     protected $fillable = ['account_id', 'product_id', 'amount', 'currency', 'unit_of_measure'];
 
     protected function casts(): array

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\SalesOrders\Schemas;
 
+use App\Enums\AccountType;
+use App\Enums\Currency;
 use App\Enums\OrderStatus;
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
@@ -34,6 +36,12 @@ class SalesOrderForm
                         TextInput::make('total_amount')
                             ->required()
                             ->numeric(),
+                        Select::make('currency')
+                            ->options(Currency::class)
+                            ->enum(Currency::class)
+                            ->default(Currency::GBP->value)
+                            ->required()
+                            ->searchable(),
                         Select::make('status')
                             ->options(OrderStatus::class),
                     ])->columnSpanFull(),
@@ -42,6 +50,7 @@ class SalesOrderForm
 
     private static function scopeAccountOptions(Builder $query): Builder
     {
+        $query->where('account_type', AccountType::VENDOR);
         $user = auth()->user();
 
         if (! $user instanceof User) {

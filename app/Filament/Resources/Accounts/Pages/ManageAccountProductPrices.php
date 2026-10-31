@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\Accounts\RelationManagers;
+namespace App\Filament\Resources\Accounts\Pages;
 
+use App\Enums\Currency;
+use App\Filament\Resources\Accounts\AccountResource;
+use App\Models\Account;
 use App\Models\AccountProductPrice;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -10,22 +13,44 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-class AccountPricesRelationManager extends RelationManager
+class ManageAccountProductPrices extends ManageRelatedRecords
 {
+    protected static string $resource = AccountResource::class;
+
     protected static string $relationship = 'accountPrices';
+
+    protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyPound;
+
+    protected static ?string $navigationLabel = 'Product Prices';
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        $account = $parameters['record'] ?? null;
+
+        return $account instanceof Account
+            && $account->isVendor()
+            && AccountResource::canEdit($account)
+            && (auth()->user()?->can('manage-account-catalogue') ?? false);
+    }
+
+    public function getTitle(): string|Htmlable
+    {
+        return "Product Prices — {$this->getRecord()->name}";
+    }
 
     public function form(Schema $schema): Schema
     {
-        $accountId = $this->getOwnerRecord()->getKey();
+        $accountId = $this->getRecord()->getKey();
 
         return $schema
             ->components([
@@ -36,7 +61,7 @@ class AccountPricesRelationManager extends RelationManager
                     ->required()
                     ->rule(fn (Get $get, ?AccountProductPrice $record) => Rule::unique('account_product_prices', 'product_id')
                         ->where('account_id', $accountId)
-                        ->where('currency', Str::upper(trim((string) $get('currency'))))
+                        ->where('currency', $get('currency'))
                         ->where('unit_of_measure', Str::upper(trim((string) $get('unit_of_measure'))))
                         ->ignore($record))
                     ->columnSpanFull(),
@@ -45,11 +70,12 @@ class AccountPricesRelationManager extends RelationManager
                     ->minValue(0)
                     ->step(0.0001)
                     ->required(),
-                TextInput::make('currency')
+                Select::make('currency')
+                    ->options(Currency::class)
+                    ->enum(Currency::class)
+                    ->default(Currency::GBP->value)
                     ->required()
-                    ->length(3)
-                    ->regex('/^[A-Z]{3}$/')
-                    ->dehydrateStateUsing(fn (string $state): string => Str::upper(trim($state)))
+                    ->searchable()
                     ->helperText('No currency conversion is performed.'),
                 TextInput::make('unit_of_measure')
                     ->maxLength(32)
@@ -64,18 +90,24 @@ class AccountPricesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('product.name')
             ->columns([
-                TextColumn::make('product.sku')->label('Product code')->searchable(),
-                TextColumn::make('product.name')->searchable(),
-                TextColumn::make('amount')->numeric(decimalPlaces: 4),
+                TextColumn::make('product.sku')
+                    ->label('Product code')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('product.name')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('amount')
+                    ->label('Account-specific price')
+                    ->numeric(decimalPlaces: 4)
+                    ->sortable(),
                 TextColumn::make('currency'),
-                TextColumn::make('unit_of_measure')->placeholder('Not supplied'),
-                TextColumn::make('fallback')
-                    ->state(fn (): string => 'Falls back to the matching product-feed price when no exact override exists.')
-                    ->wrap(),
+                TextColumn::make('unit_of_measure')
+                    ->label('Unit')
+                    ->placeholder('Not supplied'),
             ])
-            ->filters([
-                //
-            ])
+            ->emptyStateHeading('No account-specific price overrides')
+            ->emptyStateDescription('Products without an override continue to use their matching normal product-feed price.')
             ->headerActions([
                 CreateAction::make(),
             ])
@@ -85,18 +117,10 @@ class AccountPricesRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete'),
                 ]),
-            ]);
-    }
-
-    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
-    {
-        if (! auth()->check()) {
-            return false;
-        }
-
-        return auth()->user()->can('update', $ownerRecord)
-            && auth()->user()->can('manage-account-catalogue');
+            ])
+            ->defaultSort('id', 'desc');
     }
 }

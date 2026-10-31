@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
-    $this->integrationRoot = storage_path('framework/testing/integration-' . Str::uuid());
+    $this->integrationRoot = storage_path('framework/testing/integration-'.Str::uuid());
     config()->set('integration.root', $this->integrationRoot);
     app(IntegrationPaths::class)->ensureDirectories();
 });
@@ -27,16 +27,16 @@ function claimedIngestion(IntegrationDataset $dataset, string $contents): Ingest
 {
     $ingestion = Ingestion::query()->create([
         'dataset' => $dataset,
-        'original_filename' => config("integration.datasets.{$dataset->value}.prefix") . 'example.ready.csv',
+        'original_filename' => config("integration.datasets.{$dataset->value}.prefix").'example.ready.csv',
         'checksum' => hash('sha256', $contents),
         'status' => IngestionStatus::CLAIMED,
         'file_size' => strlen($contents),
         'discovered_at' => now(),
         'claimed_at' => now(),
     ]);
-    $filename = config("integration.datasets.{$dataset->value}.prefix") . $ingestion->id . '-' . Str::uuid() . '.csv';
+    $filename = config("integration.datasets.{$dataset->value}.prefix").$ingestion->id.'-'.Str::uuid().'.csv';
     $ingestion->update(['processing_filename' => $filename]);
-    $path = config('integration.root') . '/processing/' . $filename;
+    $path = config('integration.root').'/processing/'.$filename;
     File::put($path, $contents);
 
     return $ingestion->fresh();
@@ -63,8 +63,8 @@ it('keeps valid account rows and records precise row errors for a partial file',
         'account_type' => AccountType::SUPPLIER->value,
         'name' => 'Acme',
     ]);
-    expect(File::glob($this->integrationRoot . '/failed/*/*.csv'))->toHaveCount(1)
-        ->and(File::glob($this->integrationRoot . '/failed/*/*.errors.json'))->toHaveCount(1);
+    expect(File::glob($this->integrationRoot.'/failed/*/*.csv'))->toHaveCount(1)
+        ->and(File::glob($this->integrationRoot.'/failed/*/*.errors.json'))->toHaveCount(1);
 });
 
 it('upserts changed products without creating duplicate business records', function (): void {
@@ -107,7 +107,7 @@ it('commits valid non-adjacent orders atomically while rejecting an invalid orde
         'O-2,SO-2,2026-10-20,A-1,pending,GBP,5.00,L-3,1,P-MISSING,1.0000,5.00,5.00,Bad,,EA',
         'O-1,SO-1,2026-10-20,A-1,pending,GBP,20.00,L-2,2,P-1,1.0000,10.00,10.00,Second,SKU-1,EA',
     ];
-    $ingestion = claimedIngestion(IntegrationDataset::SALES_ORDERS, $header . "\n" . implode("\n", $rows) . "\n");
+    $ingestion = claimedIngestion(IntegrationDataset::SALES_ORDERS, $header."\n".implode("\n", $rows)."\n");
 
     app(ProcessIngestion::class)->handle($ingestion);
 
@@ -121,13 +121,30 @@ it('commits valid non-adjacent orders atomically while rejecting an invalid orde
         ->and($ingestion->errors()->where('code', 'unknown_product')->value('row_number'))->toBe(3);
 });
 
+it('rejects sales orders for supplier accounts', function (): void {
+    Account::factory()->supplier()->create(['external_id' => 'A-1']);
+    Product::factory()->create(['external_id' => 'P-1', 'sku' => 'SKU-1']);
+    $header = 'order_external_id,order_number,order_date,account_external_id,status,currency,total_amount,line_external_id,line_number,product_external_id,quantity,unit_price,line_total,description,sku,unit_of_measure';
+    $ingestion = claimedIngestion(
+        IntegrationDataset::SALES_ORDERS,
+        $header."\n".'O-1,SO-1,2026-10-20,A-1,pending,GBP,10.00,L-1,1,P-1,1.0000,10.00,10.00,Widget,SKU-1,EA'."\n",
+    );
+
+    app(ProcessIngestion::class)->handle($ingestion);
+
+    expect(SalesOrder::query()->count())->toBe(0)
+        ->and($ingestion->fresh()->status)->toBe(IngestionStatus::FAILED)
+        ->and($ingestion->errors()->where('code', 'invalid_relation')->value('message'))
+        ->toBe('Account [A-1] must be a vendor to place sales orders.');
+});
+
 it('rejects an entire order when repeated header fields are inconsistent', function (): void {
     Account::factory()->create(['external_id' => 'A-1']);
     Product::factory()->create(['external_id' => 'P-1', 'sku' => 'SKU-1']);
     $header = 'order_external_id,order_number,order_date,account_external_id,status,currency,total_amount,line_external_id,line_number,product_external_id,quantity,unit_price,line_total,description,sku,unit_of_measure';
-    $contents = $header . "\n"
-        . 'O-1,SO-1,2026-10-20,A-1,pending,GBP,10.00,L-1,1,P-1,1.0000,5.00,5.00,First,SKU-1,EA' . "\n"
-        . 'O-1,SO-DIFFERENT,2026-10-20,A-1,pending,GBP,10.00,L-2,2,P-1,1.0000,5.00,5.00,Second,SKU-1,EA' . "\n";
+    $contents = $header."\n"
+        .'O-1,SO-1,2026-10-20,A-1,pending,GBP,10.00,L-1,1,P-1,1.0000,5.00,5.00,First,SKU-1,EA'."\n"
+        .'O-1,SO-DIFFERENT,2026-10-20,A-1,pending,GBP,10.00,L-2,2,P-1,1.0000,5.00,5.00,Second,SKU-1,EA'."\n";
     $ingestion = claimedIngestion(IntegrationDataset::SALES_ORDERS, $contents);
 
     app(ProcessIngestion::class)->handle($ingestion);
@@ -143,12 +160,12 @@ it('updates an existing order and supplied line on a changed re-delivery', funct
     $header = 'order_external_id,order_number,order_date,account_external_id,status,currency,total_amount,line_external_id,line_number,product_external_id,quantity,unit_price,line_total,description,sku,unit_of_measure';
     $first = claimedIngestion(
         IntegrationDataset::SALES_ORDERS,
-        $header . "\n" . 'O-1,SO-1,2026-10-20,A-1,pending,GBP,5.00,L-1,1,P-1,1.0000,5.00,5.00,Original,SKU-1,EA' . "\n",
+        $header."\n".'O-1,SO-1,2026-10-20,A-1,pending,GBP,5.00,L-1,1,P-1,1.0000,5.00,5.00,Original,SKU-1,EA'."\n",
     );
     app(ProcessIngestion::class)->handle($first);
     $second = claimedIngestion(
         IntegrationDataset::SALES_ORDERS,
-        $header . "\n" . 'O-1,SO-1,2026-10-20,A-1,processing,GBP,7.50,L-1,1,P-1,1.0000,7.50,7.50,Changed,SKU-1,EA' . "\n",
+        $header."\n".'O-1,SO-1,2026-10-20,A-1,processing,GBP,7.50,L-1,1,P-1,1.0000,7.50,7.50,Changed,SKU-1,EA'."\n",
     );
 
     app(ProcessIngestion::class)->handle($second);

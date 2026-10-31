@@ -24,6 +24,10 @@ class UpsertSalesOrder
             throw new DomainException("Unknown account [{$data['account_external_id']}].");
         }
 
+        if (! $account->isVendor()) {
+            throw new DomainException("Account [{$data['account_external_id']}] must be a vendor to place sales orders.");
+        }
+
         $productExternalIds = collect($data['lines'])->pluck('product_external_id')->unique()->values();
         $products = Product::query()
             ->whereIn('external_id', $productExternalIds)

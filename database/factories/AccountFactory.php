@@ -23,7 +23,7 @@ class AccountFactory extends Factory
         return [
             'name' => $this->faker->company(),
             'account_number' => $this->faker->unique()->bothify('ACC-####'),
-            'account_type' => $this->faker->randomElement(AccountType::cases()),
+            'account_type' => AccountType::VENDOR,
             'account_status' => $this->faker->randomElement(AccountStatus::cases()),
             'product_access_mode' => AccountProductAccessMode::RESTRICTED,
         ];
@@ -33,6 +33,13 @@ class AccountFactory extends Factory
     {
         return $this->state(fn (): array => [
             'product_access_mode' => AccountProductAccessMode::ALL,
+        ]);
+    }
+
+    public function supplier(): static
+    {
+        return $this->state(fn (): array => [
+            'account_type' => AccountType::SUPPLIER,
         ]);
     }
 }

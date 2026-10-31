@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StagedSalesOrderRow extends Model
 {
+    protected $attributes = ['currency' => 'GBP'];
+
     protected $fillable = [
         'row_number', 'order_external_id', 'order_number', 'order_date', 'account_external_id',
         'status', 'currency', 'total_amount', 'line_external_id', 'line_number',

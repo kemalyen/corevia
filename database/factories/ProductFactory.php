@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Currency;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +23,7 @@ class ProductFactory extends Factory
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 1, 100),
             'sku' => $this->faker->unique()->bothify('SKU-####'),
-            'currency' => 'GBP',
+            'currency' => Currency::GBP->value,
             'unit_of_measure' => null,
         ];
     }

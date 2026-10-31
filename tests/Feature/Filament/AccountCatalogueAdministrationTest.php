@@ -2,7 +2,7 @@
 
 use App\Enums\AccountProductAccessMode;
 use App\Filament\Resources\Accounts\Pages\EditAccount;
-use App\Filament\Resources\Accounts\RelationManagers\AccountPricesRelationManager;
+use App\Filament\Resources\Accounts\Pages\ManageAccountProductPrices;
 use App\Models\Account;
 use App\Models\AccountProductPrice;
 use App\Models\Product;
@@ -74,9 +74,8 @@ it('enforces assigned-account permissions for catalogue pricing administration',
         ->and(Gate::forUser($accountManager)->allows('delete', $unassignedPrice))->toBeFalse();
 
     $this->actingAs($accountManager);
-    Livewire::test(AccountPricesRelationManager::class, [
-        'ownerRecord' => $assigned,
-        'pageClass' => EditAccount::class,
+    Livewire::test(ManageAccountProductPrices::class, [
+        'record' => $assigned->getRouteKey(),
     ])->assertOk();
 
     $this->get(route('filament.management.resources.accounts.edit', $unassigned))->assertForbidden();

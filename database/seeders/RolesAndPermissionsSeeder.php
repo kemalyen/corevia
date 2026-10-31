@@ -46,6 +46,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'update-order',
             'delete-order',
             'manage-all-orders',
+            'view-integration-runs',
+            'retry-integration-runs',
         ];
 
         foreach ($permissions as $permission) {

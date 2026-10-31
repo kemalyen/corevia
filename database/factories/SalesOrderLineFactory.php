@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Currency;
 use App\Models\Product;
 use App\Models\SalesOrderLine;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -19,10 +20,12 @@ class SalesOrderLineFactory extends Factory
     public function definition(): array
     {
         $productIds = Product::pluck('id')->toArray();
+
         return [
             'product_id' => $this->faker->randomElement($productIds),
             'quantity' => $this->faker->numberBetween(1, 10),
             'unit_price' => $this->faker->randomFloat(2, 1, 100),
+            'currency' => Currency::GBP->value,
             'total_price' => function (array $attributes) {
                 return $attributes['quantity'] * $attributes['unit_price'];
             },

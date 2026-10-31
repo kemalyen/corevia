@@ -26,6 +26,8 @@ class SalesOrderLine extends Model
     /** @use HasFactory<SalesOrderLineFactory> */
     use HasFactory;
 
+    protected $attributes = ['currency' => 'GBP'];
+
     protected $fillable = [
         'sales_order_id',
         'product_id',

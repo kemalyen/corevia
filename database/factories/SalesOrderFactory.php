@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\Currency;
+use App\Enums\OrderStatus;
+use App\Models\Account;
 use App\Models\SalesOrder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -17,13 +20,15 @@ class SalesOrderFactory extends Factory
      */
     public function definition(): array
     {
-        $accountIds = \App\Models\Account::pluck('id')->toArray();
+        $accountIds = Account::pluck('id')->toArray();
+
         return [
             'order_number' => $this->faker->unique()->bothify('SO-####'),
             'order_date' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'account_id' => $this->faker->randomElement($accountIds),
             'total_amount' => $this->faker->randomFloat(2, 10, 1000),
-            'status' => $this->faker->randomElement(\App\Enums\OrderStatus::cases())->value,
+            'currency' => Currency::GBP->value,
+            'status' => $this->faker->randomElement(OrderStatus::cases())->value,
         ];
     }
 }
