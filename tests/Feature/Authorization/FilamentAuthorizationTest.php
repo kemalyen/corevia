@@ -40,7 +40,7 @@ it('seeds the role and permission matrix idempotently', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
 
     expect(Role::query()->count())->toBe(5)
-        ->and(Permission::query()->count())->toBe(23);
+        ->and(Permission::query()->count())->toBe(29);
 });
 
 it('limits an account manager to assigned account details and actions', function (): void {

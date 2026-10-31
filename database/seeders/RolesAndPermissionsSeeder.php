@@ -34,6 +34,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'create-product',
             'update-product',
             'delete-product',
+            'manage-account-catalogue',
+            'view-any-product-category',
+            'view-product-category',
+            'create-product-category',
+            'update-product-category',
+            'delete-product-category',
             'view-any-order',
             'view-order',
             'create-order',
@@ -57,6 +63,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'access-management-panel',
             'view-any-account',
             'view-account',
+            'update-account',
+            'manage-account-catalogue',
             'view-any-order',
             'view-order',
             'update-order',
@@ -75,6 +83,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $vendor = Role::findOrCreate('vendor-user', 'web');
         $vendor->syncPermissions([
+            'view-any-product',
+            'view-product',
+            'view-any-order',
             'view-order',
             'create-order',
             'update-order',

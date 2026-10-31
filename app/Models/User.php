@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -23,11 +24,12 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property bool $is_active
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['account_id', 'name', 'email', 'password'])]
+#[Fillable(['account_id', 'name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -43,6 +45,7 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_active' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -59,14 +62,22 @@ class User extends Authenticatable implements FilamentUser
             : $initials;
     }
 
+    /** @return BelongsTo<Account, $this> */
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
     }
 
+    /** @return BelongsToMany<Account, $this> */
     public function managedAccounts(): BelongsToMany
     {
         return $this->belongsToMany(Account::class, 'account_manager_to_account', 'user_id', 'account_id');
+    }
+
+    /** @return HasMany<AssistantConversation, $this> */
+    public function assistantConversations(): HasMany
+    {
+        return $this->hasMany(AssistantConversation::class);
     }
 
     public function managesAccount(Account $account): bool

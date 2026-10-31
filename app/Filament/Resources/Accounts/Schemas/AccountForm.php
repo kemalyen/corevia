@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Accounts\Schemas;
 
+use App\Enums\AccountProductAccessMode;
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
 use Filament\Forms\Components\Select;
@@ -29,6 +30,28 @@ class AccountForm
                             ->options(AccountType::class),
 
                     ])->columnSpanFull(),
+                Section::make('Vendor catalogue access')
+                    ->description('Overrides and grants are admin-managed. Category access follows the current hierarchy, so moving categories or products changes access immediately.')
+                    ->schema([
+                        Select::make('product_access_mode')
+                            ->options(AccountProductAccessMode::class)
+                            ->default(AccountProductAccessMode::RESTRICTED->value)
+                            ->required()
+                            ->live(),
+                        Select::make('permittedProducts')
+                            ->relationship('permittedProducts', 'name')
+                            ->getOptionLabelFromRecordUsing(fn ($record): string => "{$record->sku} — {$record->name}")
+                            ->searchable(['sku', 'name'])
+                            ->multiple()
+                            ->helperText('Individual grants are combined with category grants.'),
+                        Select::make('permittedProductCategories')
+                            ->relationship('permittedProductCategories', 'name')
+                            ->searchable()
+                            ->multiple()
+                            ->helperText('A category grant includes products assigned to that category and all current descendants.'),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
             ]);
     }
 }

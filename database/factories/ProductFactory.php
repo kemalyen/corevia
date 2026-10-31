@@ -22,6 +22,8 @@ class ProductFactory extends Factory
             'description' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 1, 100),
             'sku' => $this->faker->unique()->bothify('SKU-####'),
+            'currency' => 'GBP',
+            'unit_of_measure' => null,
         ];
     }
 }

@@ -18,11 +18,15 @@ class ProductsTable
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('price')
-                    ->money()
+                    ->numeric(decimalPlaces: 4)
+                    ->placeholder('Unavailable')
                     ->sortable(),
+                TextColumn::make('currency'),
+                TextColumn::make('unit_of_measure')->placeholder('Not supplied'),
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable(),
+                TextColumn::make('categories.name')->badge()->toggleable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

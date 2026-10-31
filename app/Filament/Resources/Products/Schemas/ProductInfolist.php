@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class ProductInfolist
 {
@@ -20,16 +20,20 @@ class ProductInfolist
                             ->placeholder('-')
                             ->columnSpanFull(),
                         TextEntry::make('price')
-                            ->money(),
+                            ->numeric(decimalPlaces: 4)
+                            ->placeholder('Unavailable'),
+                        TextEntry::make('currency')->placeholder('-'),
+                        TextEntry::make('unit_of_measure')->placeholder('Not supplied'),
                         TextEntry::make('sku')
                             ->label('SKU'),
+                        TextEntry::make('categories.name')->badge()->columnSpanFull(),
                         TextEntry::make('created_at')
                             ->dateTime()
                             ->placeholder('-'),
                         TextEntry::make('updated_at')
                             ->dateTime()
                             ->placeholder('-'),
-                    ])->columnSpanFull()
+                    ])->columnSpanFull(),
             ]);
     }
 }
