@@ -26,7 +26,7 @@ class ProductsTable
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable(),
-                TextColumn::make('categories.name')->badge()->toggleable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

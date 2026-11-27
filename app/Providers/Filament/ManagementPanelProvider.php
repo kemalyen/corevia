@@ -12,7 +12,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -30,10 +29,11 @@ class ManagementPanelProvider extends PanelProvider
             ->path('management')
             ->topNavigation(true)
             ->login()
+            ->globalSearch(false)
             ->profile(EditProfile::class)
             ->colors([
                 'primary' => Color::Neutral,
-                'tertiary' => Color::Gray,
+                'tertiary' => Color::Slate,
                 'gray' => '#374151',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
@@ -43,8 +43,7 @@ class ManagementPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                //AccountWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
