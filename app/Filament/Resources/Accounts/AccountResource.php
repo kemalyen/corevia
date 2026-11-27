@@ -5,15 +5,16 @@ namespace App\Filament\Resources\Accounts;
 use App\Filament\Resources\Accounts\Pages\CreateAccount;
 use App\Filament\Resources\Accounts\Pages\EditAccount;
 use App\Filament\Resources\Accounts\Pages\ListAccounts;
+use App\Filament\Resources\Accounts\Pages\ManageAccountProductPrices;
+use App\Filament\Resources\Accounts\Pages\ManageAccountSalesOrders;
+use App\Filament\Resources\Accounts\Pages\ManageAccountUsers;
 use App\Filament\Resources\Accounts\Pages\ViewAccount;
-use App\Filament\Resources\Accounts\RelationManagers\AccountPricesRelationManager;
-use App\Filament\Resources\Accounts\RelationManagers\SalesOrdersRelationManager;
-use App\Filament\Resources\Accounts\RelationManagers\UsersRelationManager;
 use App\Filament\Resources\Accounts\Schemas\AccountForm;
 use App\Filament\Resources\Accounts\Schemas\AccountInfolist;
 use App\Filament\Resources\Accounts\Tables\AccountsTable;
 use App\Models\Account;
 use BackedEnum;
+use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -42,11 +43,18 @@ class AccountResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            'accountPrices' => AccountPricesRelationManager::class,
-            'users' => UsersRelationManager::class,
-            'sales_orders' => SalesOrdersRelationManager::class,
-        ];
+        return [];
+    }
+
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            ViewAccount::class,
+            EditAccount::class,
+            ManageAccountUsers::class,
+            ManageAccountSalesOrders::class,
+            ManageAccountProductPrices::class,
+        ]);
     }
 
     public static function getPages(): array
@@ -56,6 +64,9 @@ class AccountResource extends Resource
             'create' => CreateAccount::route('/create'),
             'view' => ViewAccount::route('/{record}'),
             'edit' => EditAccount::route('/{record}/edit'),
+            'users' => ManageAccountUsers::route('/{record}/users'),
+            'sales-orders' => ManageAccountSalesOrders::route('/{record}/sales-orders'),
+            'product-prices' => ManageAccountProductPrices::route('/{record}/product-prices'),
         ];
     }
 }

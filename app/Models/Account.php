@@ -35,6 +35,11 @@ class Account extends Model
         'product_access_mode' => AccountProductAccessMode::class,
     ];
 
+    public function isVendor(): bool
+    {
+        return $this->account_type === AccountType::VENDOR;
+    }
+
     /** @return HasMany<User, $this> */
     public function users(): HasMany
     {

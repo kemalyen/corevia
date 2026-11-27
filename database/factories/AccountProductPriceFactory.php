@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Currency;
 use App\Models\Account;
 use App\Models\AccountProductPrice;
 use App\Models\Product;
@@ -23,7 +24,7 @@ class AccountProductPriceFactory extends Factory
             'account_id' => Account::factory(),
             'product_id' => Product::factory(),
             'amount' => fake()->randomFloat(4, 0, 1000),
-            'currency' => 'GBP',
+            'currency' => Currency::GBP->value,
             'unit_of_measure' => 'EA',
         ];
     }

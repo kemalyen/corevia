@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\IntegrationEngine\Models\Ingestion;
+use App\Policies\IngestionPolicy;
 use App\Portal\Assistant\Contracts\AiProvider;
 use App\Portal\Assistant\LaravelAiProvider;
 use Carbon\CarbonImmutable;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Ingestion::class, IngestionPolicy::class);
         Gate::before(fn (User $user): ?bool => $user->hasRole('super-admin') ? true : null);
 
         $this->configureDefaults();

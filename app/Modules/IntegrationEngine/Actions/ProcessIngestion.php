@@ -4,10 +4,13 @@ namespace App\Modules\IntegrationEngine\Actions;
 
 use App\Enums\AccountStatus;
 use App\Enums\AccountType;
+use App\Enums\Currency;
 use App\Enums\OrderStatus;
 use App\Models\Account;
 use App\Models\Product;
+use App\Modules\DataHub\Actions\MapProductCategory;
 use App\Modules\DataHub\Actions\UpsertAccount;
+use App\Modules\DataHub\Actions\UpsertAccountProductPrice;
 use App\Modules\DataHub\Actions\UpsertProduct;
 use App\Modules\DataHub\Actions\UpsertSalesOrder;
 use App\Modules\IntegrationEngine\Enums\IngestionStatus;
@@ -21,6 +24,7 @@ use DomainException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ProcessIngestion
@@ -30,6 +34,8 @@ class ProcessIngestion
         private IntegrationPaths $paths,
         private UpsertAccount $upsertAccount,
         private UpsertProduct $upsertProduct,
+        private UpsertAccountProductPrice $upsertAccountProductPrice,
+        private MapProductCategory $mapProductCategory,
         private UpsertSalesOrder $upsertSalesOrder,
     ) {}
 
@@ -53,6 +59,8 @@ class ProcessIngestion
             match ($ingestion->dataset) {
                 IntegrationDataset::ACCOUNTS => $this->processAccounts($ingestion),
                 IntegrationDataset::PRODUCTS => $this->processProducts($ingestion),
+                IntegrationDataset::ACCOUNT_PRODUCT_PRICES => $this->processAccountProductPrices($ingestion),
+                IntegrationDataset::PRODUCT_CATEGORY_MAPPINGS => $this->processProductCategoryMappings($ingestion),
                 IntegrationDataset::SALES_ORDERS => $this->processSalesOrders($ingestion),
             };
         } catch (InvalidIngestionFile $exception) {
@@ -127,7 +135,7 @@ class ProcessIngestion
                     'name' => ['required', 'string', 'max:255'],
                     'description' => ['nullable', 'string'],
                     'price' => ['required', 'decimal:0,4', 'gte:0', 'max:99999999999999.9999'],
-                    'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
+                    'currency' => ['required', Rule::enum(Currency::class)],
                 ]);
 
                 if ($data === null) {
@@ -217,6 +225,72 @@ class ProcessIngestion
         $ingestion->update($counts);
     }
 
+    private function processAccountProductPrices(Ingestion $ingestion): void
+    {
+        $this->processRelationshipRows(
+            $ingestion,
+            [
+                'account_external_id' => ['required', 'string', 'max:255'],
+                'product_external_id' => ['required', 'string', 'max:255'],
+                'amount' => ['required', 'decimal:0,4', 'gte:0', 'max:99999999999999.9999'],
+                'currency' => ['required', Rule::enum(Currency::class)],
+                'unit_of_measure' => ['nullable', 'string', 'max:32'],
+            ],
+            fn (array $data): bool => $this->upsertAccountProductPrice->handle([
+                ...$data,
+                'unit_of_measure' => Str::upper($data['unit_of_measure'] ?? ''),
+            ]),
+        );
+    }
+
+    private function processProductCategoryMappings(Ingestion $ingestion): void
+    {
+        $this->processRelationshipRows(
+            $ingestion,
+            [
+                'product_external_id' => ['required', 'string', 'max:255'],
+                'category_name' => ['required', 'string', 'max:255'],
+            ],
+            fn (array $data): bool => $this->mapProductCategory->handle($data),
+        );
+    }
+
+    /**
+     * @param  array<string, array<int, mixed>>  $rules
+     * @param  callable(array<string, string|null>): bool  $process
+     */
+    private function processRelationshipRows(Ingestion $ingestion, array $rules, callable $process): void
+    {
+        $counts = $this->emptyCounts();
+
+        try {
+            foreach ($this->rows($ingestion) as $row) {
+                $counts['total_rows']++;
+                $data = $this->validated($ingestion, $row['row_number'], $row['data'], $rules);
+
+                if ($data === null) {
+                    $counts['failed_rows']++;
+
+                    continue;
+                }
+
+                try {
+                    $created = $process($data);
+                } catch (DomainException $exception) {
+                    $this->addError($ingestion, $row['row_number'], null, 'invalid_relation', $exception->getMessage());
+                    $counts['failed_rows']++;
+
+                    continue;
+                }
+
+                $counts['valid_rows']++;
+                $counts[$created ? 'created_records' : 'updated_records']++;
+            }
+        } finally {
+            $ingestion->update($counts);
+        }
+    }
+
     /**
      * @return iterable<int, array{row_number: int, data: array<string, string|null>}>
      */
@@ -272,7 +346,7 @@ class ProcessIngestion
             'order_date' => ['required', "date_format:{$dateFormat}"],
             'account_external_id' => ['required', 'string', 'max:255'],
             'status' => ['required', Rule::enum(OrderStatus::class)],
-            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
+            'currency' => ['required', Rule::enum(Currency::class)],
             'total_amount' => ['required', 'decimal:0,2', 'max:9999999999999999.99'],
             'line_external_id' => ['required', 'string', 'max:255'],
             'line_number' => ['nullable', 'string', 'max:255'],

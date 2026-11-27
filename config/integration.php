@@ -22,6 +22,23 @@ $datasets = [
             'currency' => 'currency',
         ],
     ],
+    'account_product_prices' => [
+        'prefix' => 'account-product-prices-',
+        'headers' => [
+            'account_external_id' => 'account_external_id',
+            'product_external_id' => 'product_external_id',
+            'amount' => 'amount',
+            'currency' => 'currency',
+            'unit_of_measure' => 'unit_of_measure',
+        ],
+    ],
+    'product_category_mappings' => [
+        'prefix' => 'product-category-mappings-',
+        'headers' => [
+            'product_external_id' => 'product_external_id',
+            'category_name' => 'category_name',
+        ],
+    ],
     'sales_orders' => [
         'prefix' => 'sales-orders-',
         'headers' => [

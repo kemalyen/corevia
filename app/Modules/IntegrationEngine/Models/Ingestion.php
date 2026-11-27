@@ -39,4 +39,12 @@ class Ingestion extends Model
     {
         return $this->hasMany(StagedSalesOrderRow::class);
     }
+
+    public function canRetry(): bool
+    {
+        return in_array($this->status, [
+            IngestionStatus::FAILED,
+            IngestionStatus::PARTIALLY_FAILED,
+        ], true);
+    }
 }

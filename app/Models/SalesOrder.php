@@ -32,6 +32,8 @@ class SalesOrder extends Model
     /** @use HasFactory<SalesOrderFactory> */
     use HasFactory;
 
+    protected $attributes = ['currency' => 'GBP'];
+
     protected $fillable = [
         'order_number',
         'order_date',

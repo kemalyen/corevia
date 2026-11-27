@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Resources\SalesOrders\Pages\CreateSalesOrder;
 use App\Filament\Resources\SalesOrders\Pages\EditSalesOrder;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\Account;
@@ -179,4 +180,25 @@ it('rejects moving an assigned order to an unassigned account', function (): voi
         ->assertHasFormErrors(['account_id']);
 
     expect($order->fresh()->account_id)->toBe($assignedAccount->getKey());
+});
+
+it('rejects creating a sales order for a supplier account', function (): void {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $orderManager = userWithRole('order-manager');
+    $supplier = Account::factory()->supplier()->create();
+    $this->actingAs($orderManager);
+
+    Livewire::test(CreateSalesOrder::class)
+        ->fillForm([
+            'order_number' => 'SO-SUPPLIER',
+            'order_date' => '2026-10-31 10:00:00',
+            'account_id' => $supplier->getKey(),
+            'total_amount' => '10.00',
+            'currency' => 'GBP',
+            'status' => 'pending',
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['account_id']);
+
+    expect(SalesOrder::query()->where('order_number', 'SO-SUPPLIER')->exists())->toBeFalse();
 });

@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\SalesOrders\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class SalesOrderInfolist
 {
@@ -18,7 +18,7 @@ class SalesOrderInfolist
                         TextEntry::make('order_number'),
                         TextEntry::make('order_date')
                             ->dateTime(),
-                        TextEntry::make('account_id')
+                        TextEntry::make('account.name')
                             ->numeric(),
                         TextEntry::make('total_amount')
                             ->numeric(),
@@ -29,7 +29,7 @@ class SalesOrderInfolist
                         TextEntry::make('updated_at')
                             ->dateTime()
                             ->placeholder('-'),
-                    ])->columnSpanFull()
+                    ])->columnSpanFull(),
             ]);
     }
 }
